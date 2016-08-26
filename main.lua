@@ -8,7 +8,7 @@ pissTankMax = nil
 pissTank = nil
 luigi = {}
 map = {}
-mouse = {}
+screen = {}
 state = 0
 -- STATES:
 -- 0 - Init
@@ -170,6 +170,10 @@ function love.load()
   nearestPiss.y = player.y
   nearestPiss.radius = 10
 
+  -- set up screen transformation
+  screen.transformationX = math.floor(-player.y + (love.graphics.getHeight()/2))
+  screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
+
   -- set initial init parms
   pissTankMax = 1000
   pissTank = pissTankMax
@@ -220,15 +224,17 @@ function love.update(dt)
       if player.y < love.graphics.getHeight() - (player.sprite:getHeight()/2) then
         player.y = player.y + (player.speed * dt)
       end
-
     end
+
+    screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
+    screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
 
     -- is we peeing?
     if love.mouse.isDown(1) then
         local startX = player.x
         local startY = player.y
-        local mouseX = love.mouse.getX()
-        local mouseY = love.mouse.getY()
+        local mouseX = love.mouse.getX() - screen.transformationX
+        local mouseY = love.mouse.getY() - screen.transformationY
         local angle = math.atan2((mouseY - startY), (mouseX - startX))
         local bulletDx = (player.peespeed - player.deceleration) * math.cos(angle)
         local bulletDy = (player.peespeed - player.deceleration) * math.sin(angle)
@@ -258,8 +264,10 @@ function love.update(dt)
 
 
     -- update the mouse position
-    mouse.x = love.mouse.getX()
-    mouse.y = love.mouse.getY()
+    -- TODO: fix this to account for transformation
+    --mouse.x = love.mouse.getX() - (love.graphics.getWidth()/2)
+    --mouse.y = love.mouse.getY() - (love.graphics.getHeight()/2)
+
 
     -- find the closest pee
     nearestPiss.dist = 10000000
@@ -280,7 +288,7 @@ function love.update(dt)
         nearestPiss.radius = player.radius
     end
     -- get our boy movin'
-    moveTowards(luigi, dt, nearestPiss, player)
+  --  moveTowards(luigi, dt, nearestPiss, player)
 
     -- end the game if we're out of piss
     if pissTank <= 0 then
@@ -295,29 +303,42 @@ function love.update(dt)
 end --love.update()
 
 function love.draw()
+
   --love.graphics.scale(1.5, 1.5)
   love.graphics.setFont(newFont)
-  -- draw the map
-  love.graphics.setColor(256, 256, 256)
-  drawMap(map)
-  -- draw piss
-  love.graphics.setColor(244, 250, 60)
-  for i,v in ipairs(pissStream) do
-    love.graphics.circle("fill", v.x, v.y, 3)
-  end
-  love.graphics.setColor(256, 256, 256)
-  -- draw the player
-  love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
-  love.graphics.draw(player.arrow, player.x, player.y, math.rad(findRotation(player.x, player.y, luigi.x, luigi.y)), 1, 1, player.arrow:getWidth()/2, player.arrow:getHeight()/2)
+  if state == 2 then
+    love.graphics.push()
+    -- center the screen on the player
+    love.graphics.translate(screen.transformationX, screen.transformationY)
 
-  -- draw our boy
-  love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
-  love.graphics.setColor(256, 256, 256)
-  love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
-  love.graphics.setColor(0, 0, 0)
-  love.graphics.print('Piss left...', 18, 12)
-  --love.graphics.print('Luigi drank '..luigiScore..' laps of pee!', 10, 40)
+    -- draw the map
+    love.graphics.setColor(256, 256, 256)
+    drawMap(map)
+    -- draw piss
+    love.graphics.setColor(244, 250, 60)
+    for i,v in ipairs(pissStream) do
+      love.graphics.circle("fill", v.x, v.y, 3)
+    end
+    love.graphics.setColor(256, 256, 256)
+    -- draw the player
+    love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
+    love.graphics.draw(player.arrow, player.x, player.y, math.rad(findRotation(player.x, player.y, luigi.x, luigi.y)), 1, 1, player.arrow:getWidth()/2, player.arrow:getHeight()/2)
+
+    -- draw our boy
+    love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
+
+    love.graphics.pop()
+    love.graphics.setColor(256, 256, 256)
+    love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.print('Piss left...', 18, 12)
+    love.graphics.setColor(0, 256, 0)
+    --love.graphics.print('Mouse at '..mouse.x..', '..mouse.y, 10, love.graphics.getHeight()-40)
+
+  end
   if state == 3 then
+    drawMap(map)
+    love.graphics.translate(0, 0)
     love.graphics.setColor(10, 10, 10, 150)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(256, 256, 256)
@@ -328,6 +349,8 @@ function love.draw()
     love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
   end
   if state == 1 then
+    drawMap(map)
+    love.graphics.translate(0, 0)
     love.graphics.setColor(0, 0, 0, 200)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(256, 256, 256)
@@ -342,4 +365,5 @@ function love.draw()
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
   --love.graphics.print('Luigi is at '..luigi.x..' | '..luigi.y,10, 30)
+
 end --love.draw()
