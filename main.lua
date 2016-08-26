@@ -197,7 +197,9 @@ function love.update(dt)
   -- Intro
   elseif state == 1 then
     -- do the intro stuff
-    state = 2
+    if love.keyboard.isScancodeDown('space') then
+      state = 2
+    end
   -- run the game
   elseif state == 2 then
     -- play the game
@@ -289,7 +291,6 @@ function love.update(dt)
     if love.keyboard.isScancodeDown('r') then
       state = 0
     end
-
   end
 end --love.update()
 
@@ -321,7 +322,24 @@ function love.draw()
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(256, 256, 256)
     gameovertext = love.graphics.newText(newFont, 'Game Over!')
-    love.graphics.printf('Game Over!\r\nLuigi drank '..luigiScore..' litres of piss!', 0, 200, love.graphics.getWidth(), 'center')
+    love.graphics.rectangle('fill', 100, 175, love.graphics.getWidth()-200, 1)
+    love.graphics.printf('Game Over!\r\nLuigi drank '..luigiScore..' litres of peep!', 0, 200, love.graphics.getWidth(), 'center')
+    love.graphics.rectangle('fill', 100, 300, love.graphics.getWidth()-200, 1)
+    love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
+  end
+  if state == 1 then
+    love.graphics.setColor(0, 0, 0, 200)
+    love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+    love.graphics.setColor(256, 256, 256)
+    love.graphics.rectangle('fill', 100, 75, love.graphics.getWidth()-200, 1)
+    love.graphics.printf('You be an doggo.\r\nYou need peeps.\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.\r\nThey is yors.\r\n\r\nNon for Luigi',
+      0, 100, love.graphics.getWidth(), 'center')
+    love.graphics.draw(player.sprite, 100, 110, math.rad(330), 1, 1)
+    love.graphics.draw(luigi.sprite, 450, 250, math.rad(20), 1, 1)
+    love.graphics.rectangle('fill', 100, 375, love.graphics.getWidth()-200, 1)
+    love.graphics.printf('WASD move doggo\r\nClick mous to make peep',
+      0, 400, love.graphics.getWidth(), 'center')
+    love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
   --love.graphics.print('Luigi is at '..luigi.x..' | '..luigi.y,10, 30)
 end --love.draw()
