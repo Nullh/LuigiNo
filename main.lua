@@ -4,6 +4,7 @@ luigiScore = nil
 player = {}
 pissStream = {}
 nearestPiss = {}
+pissTankMax = nil
 pissTank = nil
 luigi = {}
 map = {}
@@ -27,12 +28,12 @@ end -- getQuad()
 
 -- fill a table with the tile quads in use
 function getTiles(map)
-  ids = {} -- list of all tileIds
-  tileids = {} -- list of non-duplicate tileIds
-  tiles = {} -- table of quads for each tileId
-  hash = {} -- used for de-dup
+  local ids = {} -- list of all tileIds
+  local tileids = {} -- list of non-duplicate tileIds
+  local tiles = {} -- table of quads for each tileId
+  local hash = {} -- used for de-dup
   -- union all map data across layers
-  n = 1
+  local n = 1
   for i=1, table.getn(map.layers) do
     for v in pairs(map.layers[i].data) do
       print(map.layers[i].data[v])
@@ -159,6 +160,7 @@ function love.load()
   player.peespeed, player.deceleration = 200, 25
   player.sprite = love.graphics.newImage('assets/doggo.png')
   player.arrow = love.graphics.newImage('assets/arrow.png')
+  pissBar = love.graphics.newImage('assets/yellowblock.png')
   -- set up our boy
   luigi.x, luigi.y, luigi.speed, luigi.radius = 300, 300, 250, 10
   luigi.sprite = love.graphics.newImage('assets/luigi.png')
@@ -169,7 +171,8 @@ function love.load()
   nearestPiss.radius = 10
 
   -- set initial init parms
-  pissTank = 1000
+  pissTankMax = 1000
+  pissTank = pissTankMax
   luigiScore = 0
 
   love.mouse.setGrabbed(true)
@@ -184,7 +187,7 @@ function love.update(dt)
   -- initialising
   if state == 0 then
       -- set init parms
-      pissTank = 1000
+      pissTank = pissTankMax
       luigiScore = 0
       state = 1
       player.x, player.y, player.speed, player.radius = 100, 100, 150, 80
@@ -308,9 +311,11 @@ function love.draw()
 
   -- draw our boy
   love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
+  love.graphics.setColor(256, 256, 256)
+  love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
   love.graphics.setColor(0, 0, 0)
-  love.graphics.print('Units of pee left: '..pissTank, 10, 10)
-  love.graphics.print('Luigi drank '..luigiScore..' laps of pee!', 10, 40)
+  love.graphics.print('Piss left...', 18, 12)
+  --love.graphics.print('Luigi drank '..luigiScore..' laps of pee!', 10, 40)
   if state == 3 then
     love.graphics.setColor(10, 10, 10, 150)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
