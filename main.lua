@@ -130,23 +130,23 @@ function moveTowards(object, dt, toObject)
 
   -- update X coord
   if object.x >= (object.sprite:getWidth()/2)
-  and object.x <= love.graphics.getWidth() - (object.sprite:getWidth()/2)
+  and object.x <= (map.file.width * map.file.tilewidth) - (object.sprite:getWidth()/2)
   and checkCircularCollision(object.x, object.y, toObject.x, toObject.y, object.radius, toObject.radius) ~= true then
     object.x = object.x + dx
   elseif object.x < (object.sprite:getWidth()/2) then
       object.x = (object.sprite:getWidth()/2)
-  elseif object.x > love.graphics.getWidth() - (object.sprite:getWidth()/2) then
+  elseif object.x > (map.file.width * map.file.tilewidth) - (object.sprite:getWidth()/2) then
       object.x = object.x - 1
   end
 
   -- update y coord
   if object.y >= (object.sprite:getHeight()/2)
-  and object.y <= love.graphics.getHeight() - (object.sprite:getHeight()/2)
+  and object.y <= (map.file.height * map.file.tileheight) - (object.sprite:getHeight()/2)
   and checkCircularCollision(object.x, object.y, toObject.x, toObject.y, object.radius, toObject.radius) ~= true then
     object.y = object.y + dy
   elseif object.y < (object.sprite:getHeight()/2) then
       object.y = (object.sprite:getHeight()/2)
-  elseif object.y > love.graphics.getHeight() - (object.sprite:getHeight()/2) then
+  elseif object.y > (map.file.height * map.file.tileheight) - (object.sprite:getHeight()/2) then
       object.y = object.y - 1
   end
 end -- moveTowards()
@@ -154,7 +154,7 @@ end -- moveTowards()
 function love.load()
   newFont = love.graphics.newFont('assets/orange juice 2.0.ttf', 35)
   -- do my awesome map loading!
-  map = loadMap("maps/map.lua")
+  map = loadMap("maps/map2.lua")
   -- set up the player
   player.x, player.y, player.speed, player.radius = 100, 100, 150, 80
   player.peespeed, player.deceleration = 200, 25
@@ -172,9 +172,10 @@ function love.load()
 
   -- set up screen transformation
   screen.transformationX = math.floor(-player.y + (love.graphics.getHeight()/2))
+
   screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
 
-  -- set initial init parms
+  -- set init parms
   pissTankMax = 1000
   pissTank = pissTankMax
   luigiScore = 0
@@ -212,7 +213,7 @@ function love.update(dt)
         player.x = player.x - (player.speed * dt)
       end
     elseif love.keyboard.isScancodeDown('right', 'd') then
-      if player.x < love.graphics.getWidth() - (player.sprite:getWidth()/2) then
+      if player.x < (map.file.width * map.file.tilewidth) - (player.sprite:getWidth()/2) then
         player.x = player.x + (player.speed * dt)
       end
     end
@@ -221,13 +222,23 @@ function love.update(dt)
         player.y = player.y - (player.speed * dt)
       end
     elseif love.keyboard.isScancodeDown('down', 's') then
-      if player.y < love.graphics.getHeight() - (player.sprite:getHeight()/2) then
+      if player.y < (map.file.height * map.file.tileheight) - (player.sprite:getHeight()/2) then
         player.y = player.y + (player.speed * dt)
       end
     end
 
     screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
+    if screen.transformationX > 0 then
+      screen.transformationX = 0
+    elseif screen.transformationX < -((map.file.width * map.file.tilewidth) - love.graphics.getWidth()) then
+      screen.transformationX = -((map.file.width * map.file.tilewidth) - love.graphics.getWidth())
+    end
     screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
+    if screen.transformationY > 0 then
+      screen.transformationY = 0
+    elseif screen.transformationY < -((map.file.height * map.file.tileheight) - love.graphics.getHeight()) then
+      screen.transformationY = -((map.file.height * map.file.tileheight) - love.graphics.getHeight())
+    end
 
     -- is we peeing?
     if love.mouse.isDown(1) then
@@ -249,25 +260,17 @@ function love.update(dt)
     -- update positions of piss
     for i,v in ipairs(pissStream) do
       v.x = v.x + (v.dx* dt)
-      if v.x < -20 or v.x > love.graphics.getWidth() + 20 then
+      if v.x < -20 or v.x > (map.file.width * map.file.tilewidth) + 20 then
         table.remove(pissStream, i)
       elseif checkCircularCollision(luigi.x, luigi.y, v.x, v.y, luigi.radius, v.radius) then
         table.remove(pissStream, i)
         luigiScore = luigiScore + 1
       end
       v.y = v.y + (v.dy* dt)
-      if v.y < -20 or v.y > love.graphics.getHeight() + 20 then
+      if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
         table.remove(pissStream, i)
       end
     end
-
-
-
-    -- update the mouse position
-    -- TODO: fix this to account for transformation
-    --mouse.x = love.mouse.getX() - (love.graphics.getWidth()/2)
-    --mouse.y = love.mouse.getY() - (love.graphics.getHeight()/2)
-
 
     -- find the closest pee
     nearestPiss.dist = 10000000
@@ -288,7 +291,7 @@ function love.update(dt)
         nearestPiss.radius = player.radius
     end
     -- get our boy movin'
-  --  moveTowards(luigi, dt, nearestPiss, player)
+    moveTowards(luigi, dt, nearestPiss, player)
 
     -- end the game if we're out of piss
     if pissTank <= 0 then
@@ -364,6 +367,6 @@ function love.draw()
       0, 400, love.graphics.getWidth(), 'center')
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
-  --love.graphics.print('Luigi is at '..luigi.x..' | '..luigi.y,10, 30)
+  love.graphics.print('Transformation X is '..screen.transformationX,10, 30)
 
 end --love.draw()
