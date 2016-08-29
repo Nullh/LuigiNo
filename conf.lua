@@ -5,7 +5,7 @@ function love.conf(t)
     t.window.height = 640			-- The window height (number)
     t.window.fullscreen = false		-- Enable fullscreen (boolean)
     t.window.vsync = true			-- Enable vertical sync (boolean)
-    t.console=true
+    t.console=false
 end
 
 -- love --console C:\Users\neil.OPENPROJECTS\Dropbox\Love\LuigiNo
