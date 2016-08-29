@@ -1,4 +1,3 @@
-
 newFont = nil
 luigiScore = nil
 player = {}
@@ -9,7 +8,6 @@ pissTank = nil
 luigi = {}
 map = {}
 screen = {}
-testtile = {}
 state = 0
 -- STATES:
 -- 0 - Init
@@ -21,13 +19,9 @@ state = 0
 -- TODO: accept a tileset as a parm
 function getQuad(map, tileId)
   -- Get the x index of the tile
-  tileX = ((tileId % (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth)) * map.tilesets[1].tilewidth) - map.tilesets[1].tilewidth
+  tileX = (((tileId -1) % (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth)) * map.tilesets[1].tilewidth)
   -- get the y index of the tile
-  tileY = ((math.floor(tileId / (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth)) + 1) * map.tilesets[1].tilewidth) - map.tilesets[1].tilewidth
-  if tileId == 251 then
-    testtile.x = tileX
-    testtile.y = tileY
-  end
+  tileY = ((math.floor((tileId - 1) / (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth))) * map.tilesets[1].tilewidth)
   return love.graphics.newQuad(tileX, tileY, map.tilesets[1].tilewidth, map.tilesets[1].tileheight, map.tilesets[1].imagewidth, map.tilesets[1].imageheight)
 end -- getQuad()
 
@@ -372,7 +366,7 @@ function love.draw()
       0, 400, love.graphics.getWidth(), 'center')
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
-  love.graphics.setColor(256, 256, 256)
-  love.graphics.print('Tile 251 is '..testtile.x..', '..testtile.y,10, 100)
+  --love.graphics.setColor(256, 256, 256)
+  --love.graphics.print('Tile 251 is '..testtile.x..', '..testtile.y,10, 100)
 
 end --love.draw()
