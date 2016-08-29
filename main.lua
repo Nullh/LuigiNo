@@ -9,6 +9,7 @@ pissTank = nil
 luigi = {}
 map = {}
 screen = {}
+testtile = {}
 state = 0
 -- STATES:
 -- 0 - Init
@@ -23,6 +24,10 @@ function getQuad(map, tileId)
   tileX = ((tileId % (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth)) * map.tilesets[1].tilewidth) - map.tilesets[1].tilewidth
   -- get the y index of the tile
   tileY = ((math.floor(tileId / (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth)) + 1) * map.tilesets[1].tilewidth) - map.tilesets[1].tilewidth
+  if tileId == 251 then
+    testtile.x = tileX
+    testtile.y = tileY
+  end
   return love.graphics.newQuad(tileX, tileY, map.tilesets[1].tilewidth, map.tilesets[1].tileheight, map.tilesets[1].imagewidth, map.tilesets[1].imageheight)
 end -- getQuad()
 
@@ -347,7 +352,7 @@ function love.draw()
     love.graphics.setColor(256, 256, 256)
     gameovertext = love.graphics.newText(newFont, 'Game Over!')
     love.graphics.rectangle('fill', 100, 175, love.graphics.getWidth()-200, 1)
-    love.graphics.printf('Game Over!\r\nLuigi drank '..luigiScore..' litres of peep!', 0, 200, love.graphics.getWidth(), 'center')
+    love.graphics.printf('Game over!\r\nLuigi drank '..luigiScore..' litres of peep!', 0, 200, love.graphics.getWidth(), 'center')
     love.graphics.rectangle('fill', 100, 300, love.graphics.getWidth()-200, 1)
     love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
   end
@@ -367,6 +372,7 @@ function love.draw()
       0, 400, love.graphics.getWidth(), 'center')
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
-  love.graphics.print('Transformation X is '..screen.transformationX,10, 30)
+  love.graphics.setColor(256, 256, 256)
+  love.graphics.print('Tile 251 is '..testtile.x..', '..testtile.y,10, 100)
 
 end --love.draw()
