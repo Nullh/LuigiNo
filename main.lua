@@ -1,3 +1,4 @@
+local anim8 = require 'anim8'
 newFont = nil
 luigiScore = nil
 player = {}
@@ -157,8 +158,10 @@ function love.load()
   -- set up the player
   player.x, player.y, player.speed, player.radius = 100, 100, 150, 80
   player.peespeed, player.deceleration = 200, 25
-  player.sprite = love.graphics.newImage('assets/doggo.png')
+  player.sprite = love.graphics.newImage('assets/penny.png')
   player.arrow = love.graphics.newImage('assets/arrow.png')
+  local grid = anim8.newGrid(32, 32, player.sprite:getWidth(), player.sprite:getHeight())
+  player.anim = anim8.newAnimation(grid('1-4',1), 0.2)
   pissBar = love.graphics.newImage('assets/yellowblock.png')
   -- set up our boy
   luigi.x, luigi.y, luigi.speed, luigi.radius = 300, 300, 250, 10
@@ -226,6 +229,10 @@ function love.update(dt)
       end
     end
 
+    -- update animations
+    player.anim:update(dt)
+
+    -- update
     screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
     if screen.transformationX > 0 then
       screen.transformationX = 0
@@ -323,7 +330,9 @@ function love.draw()
     end
     love.graphics.setColor(256, 256, 256)
     -- draw the player
-    love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
+    --love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
+    --love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
+    player.anim:draw(player.sprite, player.x, player.y, 0, 2, 2)
     love.graphics.draw(player.arrow, player.x, player.y, math.rad(findRotation(player.x, player.y, luigi.x, luigi.y)), 1, 1, player.arrow:getWidth()/2, player.arrow:getHeight()/2)
 
     -- draw our boy
