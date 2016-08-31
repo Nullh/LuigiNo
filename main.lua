@@ -153,7 +153,7 @@ function love.load()
   player.peespeed, player.deceleration = 200, 25
   player.sprite = love.graphics.newImage('assets/penny2.png')
   player.arrow = love.graphics.newImage('assets/arrow.png')
-  player.grid = anim8.newGrid(32, 32, player.sprite:getWidth(), player.sprite:getHeight())
+  player.grid = anim8.newGrid(64, 64, player.sprite:getWidth(), player.sprite:getHeight())
   player.direction = 0
   -- Direction key
   --  3  4  5
@@ -404,43 +404,43 @@ function love.draw()
     -- walking animations
     if player.moving then
       if player.direction == 0 then
-        player.anMDown:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 1 then
-        player.anMDownLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMDownLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 2 then
-        player.anMLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 3 then
-        player.anMUpLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMUpLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 4 then
-        player.anMUp:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMUp:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 5 then
-        player.anMUpRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMUpRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 6 then
-        player.anMRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 7 then
-        player.anMDownRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMDownRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       else
-        player.anMDown:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       end
     else -- idle animations
       if player.direction == 0 then
-        player.anIDown:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 1 then
-        player.anIDownLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIDownLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 2 then
-        player.anILeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anILeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 3 then
-        player.anIUpLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIUpLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 4 then
-        player.anIUp:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIUp:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 5 then
-        player.anIUpRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIUpRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 6 then
-        player.anIRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       elseif player.direction == 7 then
-        player.anIDownRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIDownRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       else
-        player.anIDown:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
       end
     end
 
