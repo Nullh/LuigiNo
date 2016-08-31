@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 local anim8 = require 'anim8'
+=======
+>>>>>>> refs/remotes/origin/master
 newFont = nil
 luigiScore = nil
 player = {}
@@ -251,6 +254,7 @@ function love.update(dt)
         end
       end
     elseif love.keyboard.isScancodeDown('right', 'd') then
+<<<<<<< HEAD
       if love.keyboard.isScancodeDown('up', 'w') then
         if player.y > (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
           player.x = player.x + (player.speed * dt)
@@ -271,6 +275,15 @@ function love.update(dt)
           player.direction = 6
           player.moving = true
         end
+=======
+      if player.x < (map.file.width * map.file.tilewidth) - (player.sprite:getWidth()/2) then
+        player.x = player.x + (player.speed * dt)
+      end
+    end
+    if love.keyboard.isScancodeDown('up', 'w') then
+      if player.y > (player.sprite:getHeight()/2) then
+        player.y = player.y - (player.speed * dt)
+>>>>>>> refs/remotes/origin/master
       end
     elseif love.keyboard.isScancodeDown('up', 'w') then
         if player.y > (player.grid.frameHeight/2) then
@@ -279,12 +292,17 @@ function love.update(dt)
           player.moving = true
         end
     elseif love.keyboard.isScancodeDown('down', 's') then
+<<<<<<< HEAD
       if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) then
+=======
+      if player.y < (map.file.height * map.file.tileheight) - (player.sprite:getHeight()/2) then
+>>>>>>> refs/remotes/origin/master
         player.y = player.y + (player.speed * dt)
         player.direction = 0
         player.moving = true
       end
     end
+<<<<<<< HEAD
 
     -- update animations
     player.anIDown:update(dt)
@@ -305,6 +323,9 @@ function love.update(dt)
     player.anMDownRight:update(dt)
 
     -- update
+=======
+
+>>>>>>> refs/remotes/origin/master
     screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
     if screen.transformationX > 0 then
       screen.transformationX = 0
@@ -402,6 +423,7 @@ function love.draw()
     end
     love.graphics.setColor(256, 256, 256)
     -- draw the player
+<<<<<<< HEAD
     -- walking animations
     if player.moving then
       if player.direction == 0 then
@@ -445,6 +467,9 @@ function love.draw()
       end
     end
 
+=======
+    love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
+>>>>>>> refs/remotes/origin/master
     love.graphics.draw(player.arrow, player.x, player.y, math.rad(findRotation(player.x, player.y, luigi.x, luigi.y)), 1, 1, player.arrow:getWidth()/2, player.arrow:getHeight()/2)
 
     -- draw our boy
@@ -470,6 +495,7 @@ function love.draw()
     love.graphics.printf('Game over!\r\nLuigi drank '..luigiScore..' litres of peep!', 0, 200, love.graphics.getWidth(), 'center')
     love.graphics.rectangle('fill', 100, 300, love.graphics.getWidth()-200, 1)
     love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
+<<<<<<< HEAD
   end
   if state == 1 then
     drawMap(map)
@@ -487,6 +513,25 @@ function love.draw()
       0, 400, love.graphics.getWidth(), 'center')
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
+=======
+  end
+  if state == 1 then
+    drawMap(map)
+    love.graphics.translate(0, 0)
+    love.graphics.setColor(0, 0, 0, 200)
+    love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+    love.graphics.setColor(256, 256, 256)
+    love.graphics.rectangle('fill', 100, 75, love.graphics.getWidth()-200, 1)
+    love.graphics.printf('You be an doggo.\r\nYou need peeps.\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.\r\nThey is yors.\r\n\r\nNon for Luigi',
+      0, 100, love.graphics.getWidth(), 'center')
+    love.graphics.draw(player.sprite, 100, 110, math.rad(330), 1, 1)
+    love.graphics.draw(luigi.sprite, 450, 250, math.rad(20), 1, 1)
+    love.graphics.rectangle('fill', 100, 375, love.graphics.getWidth()-200, 1)
+    love.graphics.printf('WASD move doggo\r\nClick mous to make peep',
+      0, 400, love.graphics.getWidth(), 'center')
+    love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
+  end
+>>>>>>> refs/remotes/origin/master
   --love.graphics.setColor(256, 256, 256)
   --love.graphics.print('Tile 251 is '..testtile.x..', '..testtile.y,10, 100)
 
