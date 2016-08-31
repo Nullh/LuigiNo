@@ -1,4 +1,5 @@
 local anim8 = require 'anim8'
+local HC = require 'HC'
 newFont = nil
 luigiScore = nil
 player = {}
@@ -6,6 +7,7 @@ pissStream = {}
 nearestPiss = {}
 pissTankMax = nil
 pissTank = nil
+collisionTiles = {}
 luigi = {}
 map = {}
 screen = {}
@@ -15,6 +17,9 @@ state = 0
 -- 1 - Intro
 -- 2 - Gameplay
 -- 3 - End game
+
+-- troubleshooting text
+text = ''
 
 -- Return the quad for a tileid
 -- TODO: accept a tileset as a parm
@@ -36,7 +41,7 @@ function getTiles(map)
   local n = 1
   for i=1, table.getn(map.layers) do
     for v in pairs(map.layers[i].data) do
-      print(map.layers[i].data[v])
+      --print(map.layers[i].data[v])
       ids[n] = map.layers[i].data[v]
       n = n+1
     end
@@ -57,11 +62,40 @@ function getTiles(map)
   return tiles
 end -- getTiles()
 
+function createBlockingTiles(map, collider)
+  local collisionTileTable = {}
+  local blockinglayer = nil
+  local row = 1
+  local column = 1
+
+  for i=1, table.getn(map.file.layers) do
+    if map.file.layers[i].name == 'blocking' then
+      -- find the blocking layer
+      blockinglayer = i
+    end
+  end
+
+  for i=1, table.getn(map.file.layers[blockinglayer].data) do
+    --text = text..' Blocking tile value is '..map.file.layers[blockinglayer].data[i]
+    if column > map.file.layers[blockinglayer].width then
+      column = 1
+      row = row + 1
+    end
+    if map.file.layers[blockinglayer].data[i] ~= 0 then
+      table.insert(collisionTileTable, collider:rectangle((column * map.file.tilewidth) - map.file.tilewidth,
+        (row * map.file.tileheight) - map.file.tileheight, map.file.tilewidth, map.file.tileheight))
+    end
+    column = column + 1
+  end
+  --collider:rectangle(0, 0, 32, 32)
+  return collisionTileTable
+end -- createBlockingTiles()
+
 function drawMap(map)
   -- iterate layers
   for n = 1, table.getn(map.file.layers) do
-        row = 1
-        column = 1
+        local row = 1
+        local column = 1
         -- for each data elemnt in the layer's table
         for l = 1, table.getn(map.file.layers[n].data) do
           -- goto the next row if we've passed the screen width and reset columns
@@ -71,7 +105,8 @@ function drawMap(map)
           end
           -- draw the tile as long as it's not 0 (empty)
           if map.file.layers[n].data[l] ~= 0 then
-            love.graphics.draw(map.atlas, map.tiles[map.file.layers[n].data[l]], (column * 32) - 32, (row * 32) - 32)
+            love.graphics.draw(map.atlas, map.tiles[map.file.layers[n].data[l]],
+              (column * map.file.tileheight) - map.file.tileheight, (row * map.file.tilewidth) - map.file.tilewidth)
           end
           -- move to the next column
           column = column + 1
@@ -146,14 +181,18 @@ end -- moveTowards()
 
 function love.load()
   newFont = love.graphics.newFont('assets/orange juice 2.0.ttf', 35)
+  collider = HC.new(150)
   -- do my awesome map loading!
   map = loadMap("maps/map2.lua")
+  collisionTiles = createBlockingTiles(map, collider)
+
   -- set up the player
   player.x, player.y, player.speed, player.radius = 100, 100, 150, 80
   player.peespeed, player.deceleration = 200, 25
   player.sprite = love.graphics.newImage('assets/penny2.png')
   player.arrow = love.graphics.newImage('assets/arrow.png')
   player.grid = anim8.newGrid(64, 64, player.sprite:getWidth(), player.sprite:getHeight())
+  player.bbox = collider:rectangle(player.x - (player.grid.frameWidth/2), player.y - (player.grid.frameHeight/2), player.grid.frameWidth, player.grid.frameHeight)
   player.direction = 0
   -- Direction key
   --  3  4  5
@@ -285,6 +324,14 @@ function love.update(dt)
             player.moving = true
           end
         end
+
+    --update player bounding bbox
+    player.bbox:moveTo(player.x, player.y)
+
+    for shape, delta in pairs(collider:collisions(player.bbox)) do
+      player.y = player.y + delta.y
+      player.x = player.x + delta.x
+    end
 
     -- update animations
     player.anIDown:update(dt)
@@ -450,6 +497,13 @@ function love.draw()
     -- draw our boy
     love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
 
+    -- shade bounding boxes for testing
+    --love.graphics.setColor(10, 10, 10, 150)
+    --player.bbox:draw('fill')
+    --for i = 1, table.getn(collisionTiles) do
+    --  collisionTiles[i]:draw('fill')
+    --end
+
     love.graphics.pop()
     love.graphics.setColor(256, 256, 256)
     love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
@@ -457,6 +511,7 @@ function love.draw()
     love.graphics.print('Piss left...', 18, 12)
     love.graphics.setColor(0, 256, 0)
     --love.graphics.print('Mouse at '..mouse.x..', '..mouse.y, 10, love.graphics.getHeight()-40)
+
 
   end
   if state == 3 then
@@ -488,6 +543,8 @@ function love.draw()
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
   --love.graphics.setColor(256, 256, 256)
-  --love.graphics.print('Tile 251 is '..testtile.x..', '..testtile.y,10, 100)
+  --text = 'Number of collision tiles is '..table.getn(collisionTiles)
+  --love.graphics.print(text,10, 100)
+
 
 end --love.draw()
