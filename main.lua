@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+local anim8 = require 'anim8'
+=======
+>>>>>>> refs/remotes/origin/master
 newFont = nil
 luigiScore = nil
 player = {}
@@ -106,13 +110,6 @@ function findRotation(x1,y1,x2,y2)
   return t - 180;
 end -- findRotation()
 
--- angle in radians
---function findAngle(x1, y1, x2, y2)
---  local t = -math.atan2(y2-y1, x2-x1)
---  if t < 0 then t = t + 6.28319 end;
---  return -t + 1.5708
---end -- findAngle()
-
 function checkCircularCollision(ax, ay, bx, by, ar, br)
 	local dx = bx - ax
 	local dy = by - ay
@@ -157,8 +154,32 @@ function love.load()
   -- set up the player
   player.x, player.y, player.speed, player.radius = 100, 100, 150, 80
   player.peespeed, player.deceleration = 200, 25
-  player.sprite = love.graphics.newImage('assets/doggo.png')
+  player.sprite = love.graphics.newImage('assets/penny2.png')
   player.arrow = love.graphics.newImage('assets/arrow.png')
+  player.grid = anim8.newGrid(32, 32, player.sprite:getWidth(), player.sprite:getHeight())
+  player.direction = 0
+  -- Direction key
+  --  3  4  5
+  --  2  *  6
+  --  1  0  7
+  --player animations
+  player.anIDown = anim8.newAnimation(player.grid('1-4', 1), 0.2)
+  player.anMDown = anim8.newAnimation(player.grid('5-8', 3), 0.2)
+  player.anIDownLeft = anim8.newAnimation(player.grid('1-4', 3), 0.2)
+  player.anMDownLeft = anim8.newAnimation(player.grid('5-8', 5), 0.2)
+  player.anILeft = anim8.newAnimation(player.grid('1-4', 2), 0.2)
+  player.anMLeft = anim8.newAnimation(player.grid('5-8', 4), 0.2)
+  player.anIUpLeft = anim8.newAnimation(player.grid('5-8', 2), 0.2)
+  player.anMUpLeft = anim8.newAnimation(player.grid('1-4', 5), 0.2)
+  player.anIUp = anim8.newAnimation(player.grid('5-8', 1), 0.2)
+  player.anMUp = anim8.newAnimation(player.grid('1-4', 4), 0.2)
+  player.anIUpRight = anim8.newAnimation(player.grid('5-8', 2), 0.2):flipH()
+  player.anMUpRight = anim8.newAnimation(player.grid('1-4', 5), 0.2):flipH()
+  player.anIRight = anim8.newAnimation(player.grid('1-4', 2), 0.2):flipH()
+  player.anMRight = anim8.newAnimation(player.grid('5-8', 4), 0.2):flipH()
+  player.anIDownRight = anim8.newAnimation(player.grid('1-4', 3), 0.2):flipH()
+  player.anMDownRight = anim8.newAnimation(player.grid('5-8', 5), 0.2):flipH()
+
   pissBar = love.graphics.newImage('assets/yellowblock.png')
   -- set up our boy
   luigi.x, luigi.y, luigi.speed, luigi.radius = 300, 300, 250, 10
@@ -207,11 +228,54 @@ function love.update(dt)
   -- run the game
   elseif state == 2 then
     -- play the game
+    player.moving = false
+
+    -- NEW! 8 direction movement
     if love.keyboard.isScancodeDown('left', 'a') then
-      if player.x > (player.sprite:getWidth()/2) then
-        player.x = player.x - (player.speed * dt)
+      if love.keyboard.isScancodeDown('up', 'w') then
+        if player.x > (player.grid.frameWidth/2) and player.y > (player.grid.frameHeight/2) then
+          player.x = player.x - (player.speed * dt)
+          player.y = player.y - (player.speed * dt)
+          player.direction = 3
+          player.moving = true
+        end
+      elseif love.keyboard.isScancodeDown('down', 's') then
+        if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) and player.x > (player.grid.frameWidth/2) then
+          player.x = player.x - (player.speed * dt)
+          player.y = player.y + (player.speed * dt)
+          player.direction = 1
+          player.moving = true
+        end
+      else
+        if player.x > (player.grid.frameWidth/2) then
+          player.x = player.x - (player.speed * dt)
+          player.direction = 2
+          player.moving = true
+        end
       end
     elseif love.keyboard.isScancodeDown('right', 'd') then
+<<<<<<< HEAD
+      if love.keyboard.isScancodeDown('up', 'w') then
+        if player.y > (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
+          player.x = player.x + (player.speed * dt)
+          player.y = player.y - (player.speed * dt)
+          player.direction = 5
+          player.moving = true
+        end
+      elseif love.keyboard.isScancodeDown('down', 's') then
+        if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
+          player.x = player.x + (player.speed * dt)
+          player.y = player.y + (player.speed * dt)
+          player.direction = 7
+          player.moving = true
+        end
+      else
+        if player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
+          player.x = player.x + (player.speed * dt)
+          player.direction = 6
+          player.moving = true
+        end
+=======
       if player.x < (map.file.width * map.file.tilewidth) - (player.sprite:getWidth()/2) then
         player.x = player.x + (player.speed * dt)
       end
@@ -219,13 +283,49 @@ function love.update(dt)
     if love.keyboard.isScancodeDown('up', 'w') then
       if player.y > (player.sprite:getHeight()/2) then
         player.y = player.y - (player.speed * dt)
+>>>>>>> refs/remotes/origin/master
       end
+    elseif love.keyboard.isScancodeDown('up', 'w') then
+        if player.y > (player.grid.frameHeight/2) then
+          player.y = player.y - (player.speed * dt)
+          player.direction = 4
+          player.moving = true
+        end
     elseif love.keyboard.isScancodeDown('down', 's') then
+<<<<<<< HEAD
+      if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) then
+=======
       if player.y < (map.file.height * map.file.tileheight) - (player.sprite:getHeight()/2) then
+>>>>>>> refs/remotes/origin/master
         player.y = player.y + (player.speed * dt)
+        player.direction = 0
+        player.moving = true
       end
     end
+<<<<<<< HEAD
 
+    -- update animations
+    player.anIDown:update(dt)
+    player.anMDown:update(dt)
+    player.anIDownLeft:update(dt)
+    player.anMDownLeft:update(dt)
+    player.anILeft:update(dt)
+    player.anMLeft:update(dt)
+    player.anIUpLeft:update(dt)
+    player.anMUpLeft:update(dt)
+    player.anIUp:update(dt)
+    player.anMUp:update(dt)
+    player.anIUpRight:update(dt)
+    player.anMUpRight:update(dt)
+    player.anIRight:update(dt)
+    player.anMRight:update(dt)
+    player.anIDownRight:update(dt)
+    player.anMDownRight:update(dt)
+
+    -- update
+=======
+
+>>>>>>> refs/remotes/origin/master
     screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
     if screen.transformationX > 0 then
       screen.transformationX = 0
@@ -323,7 +423,53 @@ function love.draw()
     end
     love.graphics.setColor(256, 256, 256)
     -- draw the player
+<<<<<<< HEAD
+    -- walking animations
+    if player.moving then
+      if player.direction == 0 then
+        player.anMDown:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 1 then
+        player.anMDownLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 2 then
+        player.anMLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 3 then
+        player.anMUpLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 4 then
+        player.anMUp:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 5 then
+        player.anMUpRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 6 then
+        player.anMRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 7 then
+        player.anMDownRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      else
+        player.anMDown:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      end
+    else -- idle animations
+      if player.direction == 0 then
+        player.anIDown:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 1 then
+        player.anIDownLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 2 then
+        player.anILeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 3 then
+        player.anIUpLeft:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 4 then
+        player.anIUp:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 5 then
+        player.anIUpRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 6 then
+        player.anIRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      elseif player.direction == 7 then
+        player.anIDownRight:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      else
+        player.anIDown:draw(player.sprite, player.x, player.y, 0, 2, 2, player.grid.frameWidth/2, player.grid.frameHeight/2)
+      end
+    end
+
+=======
     love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
+>>>>>>> refs/remotes/origin/master
     love.graphics.draw(player.arrow, player.x, player.y, math.rad(findRotation(player.x, player.y, luigi.x, luigi.y)), 1, 1, player.arrow:getWidth()/2, player.arrow:getHeight()/2)
 
     -- draw our boy
@@ -349,6 +495,7 @@ function love.draw()
     love.graphics.printf('Game over!\r\nLuigi drank '..luigiScore..' litres of peep!', 0, 200, love.graphics.getWidth(), 'center')
     love.graphics.rectangle('fill', 100, 300, love.graphics.getWidth()-200, 1)
     love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
+<<<<<<< HEAD
   end
   if state == 1 then
     drawMap(map)
@@ -366,6 +513,25 @@ function love.draw()
       0, 400, love.graphics.getWidth(), 'center')
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
+=======
+  end
+  if state == 1 then
+    drawMap(map)
+    love.graphics.translate(0, 0)
+    love.graphics.setColor(0, 0, 0, 200)
+    love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+    love.graphics.setColor(256, 256, 256)
+    love.graphics.rectangle('fill', 100, 75, love.graphics.getWidth()-200, 1)
+    love.graphics.printf('You be an doggo.\r\nYou need peeps.\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.\r\nThey is yors.\r\n\r\nNon for Luigi',
+      0, 100, love.graphics.getWidth(), 'center')
+    love.graphics.draw(player.sprite, 100, 110, math.rad(330), 1, 1)
+    love.graphics.draw(luigi.sprite, 450, 250, math.rad(20), 1, 1)
+    love.graphics.rectangle('fill', 100, 375, love.graphics.getWidth()-200, 1)
+    love.graphics.printf('WASD move doggo\r\nClick mous to make peep',
+      0, 400, love.graphics.getWidth(), 'center')
+    love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
+  end
+>>>>>>> refs/remotes/origin/master
   --love.graphics.setColor(256, 256, 256)
   --love.graphics.print('Tile 251 is '..testtile.x..', '..testtile.y,10, 100)
 
