@@ -179,8 +179,8 @@ function moveTowards(object, dt, toObject)
 
   -- update X coord
   if object.x >= (object.sprite:getWidth()/2)
-  and object.x <= (map.file.width * map.file.tilewidth) - (object.sprite:getWidth()/2)
-  and checkCircularCollision(object.x, object.y, toObject.x, toObject.y, object.radius, toObject.radius) ~= true then
+  and object.x <= (map.file.width * map.file.tilewidth) - (object.sprite:getWidth()/2) then
+  --and checkCircularCollision(object.x, object.y, toObject.x, toObject.y, object.radius, toObject.radius) ~= true then
     object.x = object.x + dx
   elseif object.x < (object.sprite:getWidth()/2) then
       object.x = (object.sprite:getWidth()/2)
@@ -190,8 +190,8 @@ function moveTowards(object, dt, toObject)
 
   -- update y coord
   if object.y >= (object.sprite:getHeight()/2)
-  and object.y <= (map.file.height * map.file.tileheight) - (object.sprite:getHeight()/2)
-  and checkCircularCollision(object.x, object.y, toObject.x, toObject.y, object.radius, toObject.radius) ~= true then
+  and object.y <= (map.file.height * map.file.tileheight) - (object.sprite:getHeight()/2) then
+  -- and checkCircularCollision(object.x, object.y, toObject.x, toObject.y, object.radius, toObject.radius) ~= true then
     object.y = object.y + dy
   elseif object.y < (object.sprite:getHeight()/2) then
       object.y = (object.sprite:getHeight()/2)
@@ -216,7 +216,8 @@ function love.load()
   player.sprite = love.graphics.newImage('assets/penny2.png')
   player.arrow = love.graphics.newImage('assets/arrow.png')
   player.grid = anim8.newGrid(64, 64, player.sprite:getWidth(), player.sprite:getHeight())
-  player.bbox = collider:rectangle(player.x - (player.grid.frameWidth/2), player.y - (player.grid.frameHeight/2), player.grid.frameWidth * 0.75, player.grid.frameHeight * 0.75)
+  player.bbox = collider:circle(player.x - (player.grid.frameWidth/2), player.y - (player.grid.frameHeight/2),
+    player.grid.frameWidth * 0.25)
   player.direction = 0
   -- Direction key
   --  3  4  5
@@ -244,8 +245,8 @@ function love.load()
   -- set up our boy
   luigi.x, luigi.y, luigi.speed, luigi.radius = 300, 300, 250, 10
   luigi.sprite = love.graphics.newImage('assets/luigi.png')
-  luigi.bbox = collider:rectangle(luigi.x - (luigi.sprite:getWidth()/2),
-    luigi.y - (luigi.sprite:getHeight()/2), luigi.sprite:getWidth() * 0.75, luigi.sprite:getHeight() * 0.75)
+  luigi.bbox = collider:circle(luigi.x - (luigi.sprite:getWidth()/2),
+    luigi.y - (luigi.sprite:getHeight()/2), luigi.sprite:getWidth() * 0.5)
   -- set up piss
   nearestPiss.dist = 10000000
   nearestPiss.x = player.x
@@ -356,17 +357,19 @@ function love.update(dt)
 
     --update player bounding bbox
     player.bbox:moveTo(player.x, player.y)
-    luigi.bbox:moveTo(luigi.x, luigi.y)
+
+
+    for shape, delta in pairs(collider:collisions(luigi.bbox)) do
+      luigi.y = luigi.y + delta.y
+      luigi.x = luigi.x + delta.x
+    end    luigi.bbox:moveTo(luigi.x, luigi.y)
 
     for shape, delta in pairs(collider:collisions(player.bbox)) do
       player.y = player.y + delta.y
       player.x = player.x + delta.x
     end
 
-    for shape, delta in pairs(collider:collisions(luigi.bbox)) do
-      luigi.y = luigi.y + delta.y
-      luigi.x = luigi.x + delta.x
-    end
+
 
     -- update animations
     player.anIDown:update(dt)
