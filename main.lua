@@ -62,14 +62,14 @@ function getTiles(map)
   return tiles
 end -- getTiles()
 
-function createBlockingTiles(map, collider)
+function createBlockingTiles(map, collider, blockingLayerString)
   local collisionTileTable = {}
   local blockinglayer = nil
   local row = 1
   local column = 1
 
   for i=1, table.getn(map.file.layers) do
-    if map.file.layers[i].name == 'blocking' then
+    if map.file.layers[i].name == blockingLayerString then
       -- find the blocking layer
       blockinglayer = i
     end
@@ -91,9 +91,15 @@ function createBlockingTiles(map, collider)
   return collisionTileTable
 end -- createBlockingTiles()
 
-function drawMap(map)
+function drawMap(map, minLayer, maxLayer)
   -- iterate layers
-  for n = 1, table.getn(map.file.layers) do
+  if table.getn(map.file.layers) < maxLayer then
+    maxLayer = table.getn(map.file.layers)
+  end
+  if minLayer <= 0 then
+    minLayer = 1
+  end
+  for n = minLayer, maxLayer do
         local row = 1
         local column = 1
         -- for each data elemnt in the layer's table
@@ -114,7 +120,7 @@ function drawMap(map)
     end
 end -- drawMap()
 
-function loadMap(path)
+function loadMap(path, atlaspath)
   -- Creates a map table with the following values:
   --  .file - a handle to the lua map file
   --  .atlas - the image to use asthe tilemap
@@ -123,7 +129,7 @@ function loadMap(path)
   map.file = love.filesystem.load(path)()
   -- load the atlas
   -- TODO: make this load each atlas per layer
-  map.atlas = love.graphics.newImage('assets/atlas.png')
+  map.atlas = love.graphics.newImage(atlaspath)
   -- load the tiles for the map
   map.tiles = getTiles(map.file)
   --return the map table
@@ -183,8 +189,8 @@ function love.load()
   newFont = love.graphics.newFont('assets/orange juice 2.0.ttf', 35)
   collider = HC.new(150)
   -- do my awesome map loading!
-  map = loadMap("maps/map2.lua")
-  collisionTiles = createBlockingTiles(map, collider)
+  map = loadMap("maps/map3.lua", "assets/atlas64.png")
+  collisionTiles = createBlockingTiles(map, collider, 'blocking')
 
   -- set up the player
   player.x, player.y, player.speed, player.radius = 100, 100, 150, 80
@@ -192,7 +198,7 @@ function love.load()
   player.sprite = love.graphics.newImage('assets/penny2.png')
   player.arrow = love.graphics.newImage('assets/arrow.png')
   player.grid = anim8.newGrid(64, 64, player.sprite:getWidth(), player.sprite:getHeight())
-  player.bbox = collider:rectangle(player.x - (player.grid.frameWidth/2), player.y - (player.grid.frameHeight/2), player.grid.frameWidth, player.grid.frameHeight)
+  player.bbox = collider:rectangle(player.x - (player.grid.frameWidth/2), player.y - (player.grid.frameHeight/2), player.grid.frameWidth * 0.75, player.grid.frameHeight * 0.75)
   player.direction = 0
   -- Direction key
   --  3  4  5
@@ -258,6 +264,7 @@ function love.update(dt)
   -- Intro
   elseif state == 1 then
     -- do the intro stuff
+    player.anIDownLeft:update(dt)
     if love.keyboard.isScancodeDown('space') then
       state = 2
     end
@@ -440,7 +447,7 @@ function love.draw()
 
     -- draw the map
     love.graphics.setColor(256, 256, 256)
-    drawMap(map)
+    drawMap(map, 1, 3)
     -- draw piss
     love.graphics.setColor(244, 250, 60)
     for i,v in ipairs(pissStream) do
@@ -451,43 +458,43 @@ function love.draw()
     -- walking animations
     if player.moving then
       if player.direction == 0 then
-        player.anMDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 1 then
-        player.anMDownLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMDownLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 2 then
-        player.anMLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 3 then
-        player.anMUpLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMUpLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 4 then
-        player.anMUp:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMUp:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 5 then
-        player.anMUpRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMUpRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 6 then
-        player.anMRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 7 then
-        player.anMDownRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMDownRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       else
-        player.anMDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anMDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       end
     else -- idle animations
       if player.direction == 0 then
-        player.anIDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 1 then
-        player.anIDownLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIDownLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 2 then
-        player.anILeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anILeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 3 then
-        player.anIUpLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIUpLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 4 then
-        player.anIUp:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIUp:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 5 then
-        player.anIUpRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIUpRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 6 then
-        player.anIRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       elseif player.direction == 7 then
-        player.anIDownRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIDownRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       else
-        player.anIDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2)
+        player.anIDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
       end
     end
 
@@ -496,7 +503,9 @@ function love.draw()
 
     -- draw our boy
     love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
-
+    love.graphics.setColor(256, 256, 256)
+    -- draw overlay layer
+    drawMap(map, 4, 4)
     -- shade bounding boxes for testing
     --love.graphics.setColor(10, 10, 10, 150)
     --player.bbox:draw('fill')
@@ -515,7 +524,7 @@ function love.draw()
 
   end
   if state == 3 then
-    drawMap(map)
+    drawMap(map, 1, 100)
     love.graphics.translate(0, 0)
     love.graphics.setColor(10, 10, 10, 150)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
@@ -527,7 +536,7 @@ function love.draw()
     love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
   end
   if state == 1 then
-    drawMap(map)
+    drawMap(map, 1, 100)
     love.graphics.translate(0, 0)
     love.graphics.setColor(0, 0, 0, 200)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
@@ -535,7 +544,8 @@ function love.draw()
     love.graphics.rectangle('fill', 100, 75, love.graphics.getWidth()-200, 1)
     love.graphics.printf('You be an doggo.\r\nYou need peeps.\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.\r\nThey is yors.\r\n\r\nNon for Luigi',
       0, 100, love.graphics.getWidth(), 'center')
-    love.graphics.draw(player.sprite, 100, 110, math.rad(330), 1, 1)
+    player.anIDownLeft:draw(player.sprite, 100, 100, math.rad(350), 1, 1)
+    --love.graphics.draw(player.sprite, 100, 110, math.rad(330), 1, 1)
     love.graphics.draw(luigi.sprite, 450, 250, math.rad(20), 1, 1)
     love.graphics.rectangle('fill', 100, 375, love.graphics.getWidth()-200, 1)
     love.graphics.printf('WASD move doggo\r\nClick mous to make peep',
