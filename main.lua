@@ -40,10 +40,12 @@ function getTiles(map)
   -- union all map data across layers
   local n = 1
   for i=1, table.getn(map.layers) do
-    for v in pairs(map.layers[i].data) do
-      --print(map.layers[i].data[v])
-      ids[n] = map.layers[i].data[v]
-      n = n+1
+    if map.layers[i].type == "tilelayer" then
+      for v in pairs(map.layers[i].data) do
+        --print(map.layers[i].data[v])
+        ids[n] = map.layers[i].data[v]
+        n = n+1
+      end
     end
   end
   -- get unique tileIDs
@@ -61,6 +63,17 @@ function getTiles(map)
   -- return the table of quads
   return tiles
 end -- getTiles()
+
+function getPlayerStart(map)
+  local coords = {}
+  for i=1, table.getn(map.file.layers) do
+    if map.file.layers[i].name == "playerstart" then
+      coords.x = map.file.layers[i].objects[1].x
+      coords.y = map.file.layers[i].objects[1].y
+    end
+  end
+  return coords
+end --getPlayerStart()
 
 function createBlockingTiles(map, collider, blockingLayerString)
   local collisionTileTable = {}
@@ -100,6 +113,7 @@ function drawMap(map, minLayer, maxLayer)
     minLayer = 1
   end
   for n = minLayer, maxLayer do
+    if map.file.layers[n].type == "tilelayer" then
         local row = 1
         local column = 1
         -- for each data elemnt in the layer's table
@@ -117,6 +131,7 @@ function drawMap(map, minLayer, maxLayer)
           -- move to the next column
           column = column + 1
         end
+      end
     end
 end -- drawMap()
 
@@ -193,7 +208,10 @@ function love.load()
   collisionTiles = createBlockingTiles(map, collider, 'blocking')
 
   -- set up the player
-  player.x, player.y, player.speed, player.radius = 100, 100, 150, 80
+  --player.x, player.y = 100, 100
+  player.x = getPlayerStart(map).x
+  player.y = getPlayerStart(map).y
+  player.speed, player.radius = 150, 80
   player.peespeed, player.deceleration = 200, 25
   player.sprite = love.graphics.newImage('assets/penny2.png')
   player.arrow = love.graphics.newImage('assets/arrow.png')
@@ -226,6 +244,8 @@ function love.load()
   -- set up our boy
   luigi.x, luigi.y, luigi.speed, luigi.radius = 300, 300, 250, 10
   luigi.sprite = love.graphics.newImage('assets/luigi.png')
+  luigi.bbox = collider:rectangle(luigi.x - (luigi.sprite:getWidth()/2),
+    luigi.y - (luigi.sprite:getHeight()/2), luigi.sprite:getWidth() * 0.75, luigi.sprite:getHeight() * 0.75)
   -- set up piss
   nearestPiss.dist = 10000000
   nearestPiss.x = player.x
@@ -257,7 +277,9 @@ function love.update(dt)
       pissTank = pissTankMax
       luigiScore = 0
       state = 1
-      player.x, player.y, player.speed, player.radius = 100, 100, 150, 80
+      player.x = getPlayerStart(map).x
+      player.y = getPlayerStart(map).y
+      player.speed, player.radius = 150, 80
       player.peespeed, player.deceleration = 200, 25
       luigi.x, luigi.y, luigi.speed, luigi.radius = 300, 300, 250, 10
       pissStream = {}
@@ -334,10 +356,16 @@ function love.update(dt)
 
     --update player bounding bbox
     player.bbox:moveTo(player.x, player.y)
+    luigi.bbox:moveTo(luigi.x, luigi.y)
 
     for shape, delta in pairs(collider:collisions(player.bbox)) do
       player.y = player.y + delta.y
       player.x = player.x + delta.x
+    end
+
+    for shape, delta in pairs(collider:collisions(luigi.bbox)) do
+      luigi.y = luigi.y + delta.y
+      luigi.x = luigi.x + delta.x
     end
 
     -- update animations
@@ -454,6 +482,9 @@ function love.draw()
       love.graphics.circle("fill", v.x, v.y, 3)
     end
     love.graphics.setColor(256, 256, 256)
+
+    -- draw our boy
+    love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
     -- draw the player
     -- walking animations
     if player.moving then
@@ -501,8 +532,7 @@ function love.draw()
     --love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
     love.graphics.draw(player.arrow, player.x, player.y, math.rad(findRotation(player.x, player.y, luigi.x, luigi.y)), 1, 1, player.arrow:getWidth()/2, player.arrow:getHeight()/2)
 
-    -- draw our boy
-    love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
+
     love.graphics.setColor(256, 256, 256)
     -- draw overlay layer
     drawMap(map, 4, 4)
@@ -524,8 +554,11 @@ function love.draw()
 
   end
   if state == 3 then
+    love.graphics.push()
+    love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth), love.graphics.getHeight()/(map.file.height * map.file.tileheight))
     drawMap(map, 1, 100)
     love.graphics.translate(0, 0)
+    love.graphics.pop()
     love.graphics.setColor(10, 10, 10, 150)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(256, 256, 256)
@@ -536,8 +569,11 @@ function love.draw()
     love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
   end
   if state == 1 then
+    love.graphics.push()
+    love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth), love.graphics.getHeight()/(map.file.height * map.file.tileheight))
     drawMap(map, 1, 100)
     love.graphics.translate(0, 0)
+    love.graphics.pop()
     love.graphics.setColor(0, 0, 0, 200)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(256, 256, 256)
