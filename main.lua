@@ -2,6 +2,7 @@ local anim8 = require 'anim8'
 local HC = require 'HC'
 newFont = nil
 luigiScore = nil
+score = nil
 player = {}
 pissStream = {}
 chaseObject = {}
@@ -13,7 +14,7 @@ staminaTimer = nil
 staminaTimerMax = nil
 rotateAngle = nil
 collisionTiles = {}
-blockingObjects = {}
+scoreTiles = {}
 luigi = {}
 map = {}
 screen = {}
@@ -101,10 +102,12 @@ function createBlockingTiles(map, collider, blockingLayerString)
     if map.file.layers[blockinglayer].objects[i].shape == "rectangle" then
       table.insert(collisionTileTable, collider:rectangle(map.file.layers[blockinglayer].objects[i].x, map.file.layers[blockinglayer].objects[i].y,
           map.file.layers[blockinglayer].objects[i].width, map.file.layers[blockinglayer].objects[i].height))
+      collisionTileTable[table.getn(collisionTileTable)].name = 'blocking'
     elseif map.file.layers[blockinglayer].objects[i].shape == "ellipse" then
       table.insert(collisionTileTable, collider:circle(map.file.layers[blockinglayer].objects[i].x + (map.file.layers[blockinglayer].objects[i].width/2),
           map.file.layers[blockinglayer].objects[i].y + (map.file.layers[blockinglayer].objects[i].width/2),
           map.file.layers[blockinglayer].objects[i].width/2))
+      collisionTileTable[table.getn(collisionTileTable)].name = 'blocking'
     end
   end
   --collider:rectangle(0, 0, 32, 32)
@@ -126,10 +129,12 @@ function getScoreTiles(map, collider, scoreLayerString)
     if map.file.layers[scoreLayer].objects[i].shape == "rectangle" then
       table.insert(scoreObjectTable, collider:rectangle(map.file.layers[scoreLayer].objects[i].x, map.file.layers[scoreLayer].objects[i].y,
           map.file.layers[scoreLayer].objects[i].width, map.file.layers[scoreLayer].objects[i].height))
+      scoreObjectTable[table.getn(scoreObjectTable)].name = 'score'
     elseif map.file.layers[scoreLayer].objects[i].shape == "ellipse" then
       table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
           map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
           map.file.layers[scoreLayer].objects[i].width/2))
+      scoreObjectTable[table.getn(scoreObjectTable)].name = 'score'
     end
   end
 
@@ -230,7 +235,7 @@ function love.load()
   -- do my awesome map loading!
   map = loadMap("maps/map3.lua", "assets/atlas64.png")
   collisionTiles = createBlockingTiles(map, collider, 'blocking')
-  blockingObjects = getScoreTiles(map, collider, 'score')
+  scoreTiles = getScoreTiles(map, collider, 'score')
 
   -- set up the player
   --player.x, player.y = 100, 100
@@ -308,6 +313,7 @@ function love.update(dt)
       staminaTimer = staminaTimerMax
       rotateAngle = 0
       luigiScore = 0
+      score = 0
       state = 1
       player.x = getPlayerStart(map).x
       player.y = getPlayerStart(map).y
@@ -421,6 +427,30 @@ function love.update(dt)
       screen.transformationY = -((map.file.height * map.file.tileheight) - love.graphics.getHeight())
     end
 
+    -- update positions of piss
+
+    --table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
+    --    map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
+    --    map.file.layers[scoreLayer].objects[i].width/2))
+    for i,v in ipairs(pissStream) do
+      v.x = v.x + (v.dx* dt)
+      --pissStream[i].bbox.name = 'piss'
+      if v.x < -20 or v.x > (map.file.width * map.file.tilewidth) + 20 then
+        collider:remove(pissStream[i].bbox)
+        table.remove(pissStream, i)
+      elseif checkCircularCollision(luigi.x, luigi.y, v.x, v.y, luigi.radius, v.radius) then
+        collider:remove(pissStream[i].bbox)
+        table.remove(pissStream, i)
+        luigiScore = luigiScore + 1
+        --luigi.x = luigi.x + (v.dx * dt)
+        --luigi.y = luigi.y + (v.dy * dt)
+      end
+      v.y = v.y + (v.dy* dt)
+      if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
+        table.remove(pissStream, i)
+      end
+    end
+
     -- do we want to stop peeing?
     if pissStamina > 0 and love.mouse.isDown(1) and staminaTimer >= staminaTimerMax then
       pissStamina = pissStamina - (20 * dt)
@@ -448,37 +478,16 @@ function love.update(dt)
         if staminaTimer < staminaTimerMax then staminaTimer = staminaTimer + (10 * dt) end
     end
 
-    -- update positions of piss
-
-    --table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
-    --    map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
-    --    map.file.layers[scoreLayer].objects[i].width/2))
-    for i,v in ipairs(pissStream) do
-      v.x = v.x + (v.dx* dt)
-      --pissStream[i].bbox.name = 'piss'
-      if v.x < -20 or v.x > (map.file.width * map.file.tilewidth) + 20 then
-        collider:remove(pissStream[i].bbox)
-        table.remove(pissStream, i)
-      elseif checkCircularCollision(luigi.x, luigi.y, v.x, v.y, luigi.radius, v.radius) then
-        collider:remove(pissStream[i].bbox)
-        table.remove(pissStream, i)
-        luigiScore = luigiScore + 1
-        --luigi.x = luigi.x + (v.dx * dt)
-        --luigi.y = luigi.y + (v.dy * dt)
-      end
-      v.y = v.y + (v.dy* dt)
-      if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
-        table.remove(pissStream, i)
-      end
-    end
-
     --update player bounding bbox
 
     for shape, delta in pairs(collider:collisions(luigi.bbox)) do
+      if shape.name ~= 'piss' then
         luigi.y = luigi.y + delta.y
         luigi.x = luigi.x + delta.x
+      end
     end
     luigi.bbox:moveTo(luigi.x, luigi.y)
+
     for shape, delta in pairs(collider:collisions(player.bbox)) do
       if shape.name ~= 'piss' and shape.name ~= 'luigi' then
         player.y = player.y + delta.y
@@ -486,6 +495,24 @@ function love.update(dt)
       end
     end
     player.bbox:moveTo(player.x, player.y)
+
+    for i in ipairs(pissStream) do
+      for shape, delta in pairs(collider:collisions(pissStream[i].bbox)) do
+        if shape.name == 'score' then
+          collider:remove(pissStream[i].bbox)
+          score = score + 1
+
+          table.remove(pissStream, i)
+        elseif shape.name == 'blocking' then
+          collider:remove(pissStream[i].bbox)
+          table.remove(pissStream, i)
+        else
+          pissStream[i].bbox:moveTo(pissStream[i].x, pissStream[i].y)
+        end
+      end
+    end
+
+
 
     -- find the closest pee
     chaseObject.dist = 10000000
@@ -595,10 +622,13 @@ function love.draw()
     drawMap(map, 4, 4)
     -- shade bounding boxes for testing
     love.graphics.setColor(10, 10, 10, 150)
-    player.bbox:draw('fill')
-    luigi.bbox:draw('fill')
-    for i = 1, table.getn(collisionTiles) do
-      collisionTiles[i]:draw('fill')
+    --player.bbox:draw('fill')
+    --luigi.bbox:draw('fill')
+    --for i = 1, table.getn(collisionTiles) do
+    --  collisionTiles[i]:draw('fill')
+    --end
+    for i = 1, table.getn(scoreTiles) do
+      scoreTiles[i]:draw('fill')
     end
 
     love.graphics.pop()
@@ -606,6 +636,8 @@ function love.draw()
     love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
     love.graphics.setColor(0, 0, 0)
     love.graphics.print('Piss left...', 18, 12)
+
+    love.graphics.print('Score: '..score, 10, love.graphics.getHeight() - 50)
 
     if staminaTimer < staminaTimerMax then
       love.graphics.setColor(256, 0, 0, 200)
@@ -621,7 +653,8 @@ function love.draw()
   end
   if state == 3 then
     love.graphics.push()
-    love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth), love.graphics.getHeight()/(map.file.height * map.file.tileheight))
+    love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
+      love.graphics.getHeight()/(map.file.height * map.file.tileheight))
     drawMap(map, 1, 100)
     love.graphics.translate(0, 0)
     love.graphics.pop()
@@ -630,13 +663,16 @@ function love.draw()
     love.graphics.setColor(256, 256, 256)
     gameovertext = love.graphics.newText(newFont, 'Game Over!')
     love.graphics.rectangle('fill', 100, 175, love.graphics.getWidth()-200, 1)
-    love.graphics.printf('Game over!\r\nLuigi drank '..luigiScore..' litres of peep!', 0, 200, love.graphics.getWidth(), 'center')
-    love.graphics.rectangle('fill', 100, 300, love.graphics.getWidth()-200, 1)
+    love.graphics.printf('Game over!\r\nYou got '..score..' litres of peep on target\r\nLuigi drank '
+      ..luigiScore..' litres of peep\r\n\r\nYour final score is: \r\n'..(score-luigiScore),
+      0, 200, love.graphics.getWidth(), 'center')
+    love.graphics.rectangle('fill', 100, 430, love.graphics.getWidth()-200, 1)
     love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
   end
   if state == 1 then
     love.graphics.push()
-    love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth), love.graphics.getHeight()/(map.file.height * map.file.tileheight))
+    love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
+      love.graphics.getHeight()/(map.file.height * map.file.tileheight))
     drawMap(map, 1, 100)
     love.graphics.translate(0, 0)
     love.graphics.pop()
@@ -644,7 +680,9 @@ function love.draw()
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(256, 256, 256)
     love.graphics.rectangle('fill', 100, 75, love.graphics.getWidth()-200, 1)
-    love.graphics.printf('You be an doggo.\r\nYou need peeps.\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.\r\nThey is yors.\r\n\r\nNon for Luigi',
+    love.graphics.printf('You be an doggo.\r\nYou need peeps.'
+      ..'\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.'
+      ..'\r\nThey is yors.\r\n\r\nNon for Luigi',
       0, 100, love.graphics.getWidth(), 'center')
     player.anIDownLeft:draw(player.sprite, 100, 100, math.rad(350), 1, 1)
     --love.graphics.draw(player.sprite, 100, 110, math.rad(330), 1, 1)
