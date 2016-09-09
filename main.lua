@@ -124,17 +124,27 @@ function getScoreTiles(map, collider, scoreLayerString)
     end
   end
 
-  -- draw each blocking object
+  -- create each blocking object
   for i=1, table.getn(map.file.layers[scoreLayer].objects) do
     if map.file.layers[scoreLayer].objects[i].shape == "rectangle" then
       table.insert(scoreObjectTable, collider:rectangle(map.file.layers[scoreLayer].objects[i].x, map.file.layers[scoreLayer].objects[i].y,
           map.file.layers[scoreLayer].objects[i].width, map.file.layers[scoreLayer].objects[i].height))
       scoreObjectTable[table.getn(scoreObjectTable)].name = 'score'
+      scoreObjectTable[table.getn(scoreObjectTable)].fill = 0
+      scoreObjectTable[table.getn(scoreObjectTable)].x = map.file.layers[scoreLayer].objects[i].x
+      scoreObjectTable[table.getn(scoreObjectTable)].y = map.file.layers[scoreLayer].objects[i].y
+      scoreObjectTable[table.getn(scoreObjectTable)].width = map.file.layers[scoreLayer].objects[i].width
+      scoreObjectTable[table.getn(scoreObjectTable)].height = map.file.layers[scoreLayer].objects[i].height
     elseif map.file.layers[scoreLayer].objects[i].shape == "ellipse" then
       table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
           map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
           map.file.layers[scoreLayer].objects[i].width/2))
       scoreObjectTable[table.getn(scoreObjectTable)].name = 'score'
+      scoreObjectTable[table.getn(scoreObjectTable)].fill = 0
+      scoreObjectTable[table.getn(scoreObjectTable)].x = map.file.layers[scoreLayer].objects[i].x
+      scoreObjectTable[table.getn(scoreObjectTable)].y = map.file.layers[scoreLayer].objects[i].y
+      scoreObjectTable[table.getn(scoreObjectTable)].width = map.file.layers[scoreLayer].objects[i].width
+      scoreObjectTable[table.getn(scoreObjectTable)].height = map.file.layers[scoreLayer].objects[i].height
     end
   end
 
@@ -500,9 +510,11 @@ function love.update(dt)
       for shape, delta in pairs(collider:collisions(pissStream[i].bbox)) do
         if shape.name == 'score' then
           collider:remove(pissStream[i].bbox)
-          score = score + 1
-
           table.remove(pissStream, i)
+          score = score + 1
+          if  shape.fill + 1 < 101 then
+            shape.fill = shape.fill + 1
+          end
         elseif shape.name == 'blocking' then
           collider:remove(pissStream[i].bbox)
           table.remove(pissStream, i)
@@ -629,6 +641,7 @@ function love.draw()
     --end
     for i = 1, table.getn(scoreTiles) do
       scoreTiles[i]:draw('fill')
+      love.graphics.print(scoreTiles[i].fill, scoreTiles[i].x, scoreTiles[i].y)
     end
 
     love.graphics.pop()
