@@ -241,6 +241,7 @@ end -- moveTowards()
 
 function love.load()
   newFont = love.graphics.newFont('assets/orange juice 2.0.ttf', 35)
+  compyFont = love.graphics.newFont('assets/256BYTES.TTF', 15)
   collider = HC.new(150)
   -- do my awesome map loading!
   map = loadMap("maps/map3.lua", "assets/atlas64.png")
@@ -324,6 +325,9 @@ function love.update(dt)
       rotateAngle = 0
       luigiScore = 0
       score = 0
+      for i, tile in ipairs(scoreTiles) do
+        tile.fill = 0
+      end
       state = 1
       player.x = getPlayerStart(map).x
       player.y = getPlayerStart(map).y
@@ -457,6 +461,7 @@ function love.update(dt)
       end
       v.y = v.y + (v.dy* dt)
       if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
+        collider:remove(pissStream[i].bbox)
         table.remove(pissStream, i)
       end
     end
@@ -640,8 +645,12 @@ function love.draw()
     --  collisionTiles[i]:draw('fill')
     --end
     for i = 1, table.getn(scoreTiles) do
+      love.graphics.setColor(10, 10, 10, 150)
       scoreTiles[i]:draw('fill')
-      love.graphics.print(scoreTiles[i].fill, scoreTiles[i].x, scoreTiles[i].y)
+      love.graphics.setFont(compyFont)
+      love.graphics.setColor(0, 256, 0)
+      love.graphics.print(scoreTiles[i].fill, scoreTiles[i].x, scoreTiles[i].y-5)
+      love.graphics.setFont(newFont)
     end
 
     love.graphics.pop()
