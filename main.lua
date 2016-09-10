@@ -307,7 +307,7 @@ function love.load()
   pissStaminaMax = 100
   staminaTimerMax = 10
 
-  love.mouse.setGrabbed(true)
+  --love.mouse.setGrabbed(true)
 end --love.load()
 
 function love.update(dt)
@@ -722,9 +722,9 @@ function love.draw()
       0, 400, love.graphics.getWidth(), 'center')
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
   end
-  --love.graphics.setColor(256, 256, 256)
-  --text = 'Rotate angle is '..rotateAngle..'\r\nTarget is '..rotateTargetX..',\r\n'..rotateTargetY..'\r\nPlayer: '..player.x..', '..player.y
-  --love.graphics.print(text,10, 100)
+  love.graphics.setColor(256, 256, 256)
+  text = 'Length of pissStream is '..table.getn(pissStream)
+  love.graphics.print(text,10, 100)
 
 
 end --love.draw()
