@@ -446,25 +446,25 @@ function love.update(dt)
     --table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
     --    map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
     --    map.file.layers[scoreLayer].objects[i].width/2))
-    for i,v in ipairs(pissStream) do
-      v.x = v.x + (v.dx* dt)
+    --for i,v in ipairs(pissStream) do
+      --v.x = v.x + (v.dx* dt)
       --pissStream[i].bbox.name = 'piss'
-      if v.x < -20 or v.x > (map.file.width * map.file.tilewidth) + 20 then
-        collider:remove(pissStream[i].bbox)
-        table.remove(pissStream, i)
-      elseif checkCircularCollision(luigi.x, luigi.y, v.x, v.y, luigi.radius, v.radius) then
-        collider:remove(pissStream[i].bbox)
-        table.remove(pissStream, i)
-        luigiScore = luigiScore + 1
+      --if v.x < -20 or v.x > (map.file.width * map.file.tilewidth) + 20 then
+        --collider:remove(pissStream[i].bbox)
+        --table.remove(pissStream, i)
+      --elseif checkCircularCollision(luigi.x, luigi.y, v.x, v.y, luigi.radius, v.radius) then
+        --collider:remove(pissStream[i].bbox)
+        --table.remove(pissStream, i)
+        --luigiScore = luigiScore + 1
         --luigi.x = luigi.x + (v.dx * dt)
         --luigi.y = luigi.y + (v.dy * dt)
-      end
-      v.y = v.y + (v.dy* dt)
-      if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
-        collider:remove(pissStream[i].bbox)
-        table.remove(pissStream, i)
-      end
-    end
+      --end
+      --v.y = v.y + (v.dy* dt)
+      --if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
+        --collider:remove(pissStream[i].bbox)
+        --table.remove(pissStream, i)
+      --end
+    --end
 
     -- do we want to stop peeing?
     if pissStamina > 0 and love.mouse.isDown(1) and staminaTimer >= staminaTimerMax then
@@ -511,22 +511,30 @@ function love.update(dt)
     end
     player.bbox:moveTo(player.x, player.y)
 
-    for i in ipairs(pissStream) do
-      for shape, delta in pairs(collider:collisions(pissStream[i].bbox)) do
+    for i,v in ipairs(pissStream) do
+      for shape, delta in pairs(collider:collisions(v.bbox)) do
         if shape.name == 'score' then
-          collider:remove(pissStream[i].bbox)
+          collider:remove(v.bbox)
           table.remove(pissStream, i)
-          score = score + 1
-          if  shape.fill + 1 < 101 then
+          if shape.fill + 1 < 101 then
             shape.fill = shape.fill + 1
+            score = score + 1
           end
         elseif shape.name == 'blocking' then
-          collider:remove(pissStream[i].bbox)
+          collider:remove(v.bbox)
           table.remove(pissStream, i)
-        else
-          pissStream[i].bbox:moveTo(pissStream[i].x, pissStream[i].y)
+        elseif shape.name == 'luigi' then
+          collider:remove(v.bbox)
+          table.remove(pissStream, i)
+          luigiScore = luigiScore + 1
         end
       end
+    end
+
+    for i, v in ipairs(pissStream) do
+      v.x = v.x + (v.dx* dt)
+      v.y = v.y + (v.dy* dt)
+      v.bbox:moveTo(v.x, v.y)
     end
 
 
