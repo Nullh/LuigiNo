@@ -1,5 +1,6 @@
 local anim8 = require 'anim8'
 local HC = require 'HC'
+require 'bookEntries'
 newFont = nil
 luigiScore = nil
 score = nil
@@ -19,6 +20,8 @@ luigi = {}
 map = {}
 screen = {}
 state = 0
+signpost = nil
+paused = false
 -- STATES:
 -- 0 - Init
 -- 1 - Intro
@@ -130,6 +133,7 @@ function getScoreTiles(map, collider, scoreLayerString)
       table.insert(scoreObjectTable, collider:rectangle(map.file.layers[scoreLayer].objects[i].x, map.file.layers[scoreLayer].objects[i].y,
           map.file.layers[scoreLayer].objects[i].width, map.file.layers[scoreLayer].objects[i].height))
       scoreObjectTable[table.getn(scoreObjectTable)].name = 'score'
+      scoreObjectTable[table.getn(scoreObjectTable)].full = false
       scoreObjectTable[table.getn(scoreObjectTable)].fill = 0
       scoreObjectTable[table.getn(scoreObjectTable)].x = map.file.layers[scoreLayer].objects[i].x
       scoreObjectTable[table.getn(scoreObjectTable)].y = map.file.layers[scoreLayer].objects[i].y
@@ -140,6 +144,7 @@ function getScoreTiles(map, collider, scoreLayerString)
           map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
           map.file.layers[scoreLayer].objects[i].width/2))
       scoreObjectTable[table.getn(scoreObjectTable)].name = 'score'
+      scoreObjectTable[table.getn(scoreObjectTable)].full = false
       scoreObjectTable[table.getn(scoreObjectTable)].fill = 0
       scoreObjectTable[table.getn(scoreObjectTable)].x = map.file.layers[scoreLayer].objects[i].x
       scoreObjectTable[table.getn(scoreObjectTable)].y = map.file.layers[scoreLayer].objects[i].y
@@ -240,13 +245,16 @@ function moveTowards(object, dt, toObject)
 end -- moveTowards()
 
 function love.load()
-  newFont = love.graphics.newFont('assets/orange juice 2.0.ttf', 35)
+  newFont = love.graphics.newFont('assets/ComingSoon.ttf', 25)
   compyFont = love.graphics.newFont('assets/256BYTES.TTF', 15)
+  signFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 20)
   collider = HC.new(150)
   -- do my awesome map loading!
   map = loadMap("maps/map3.lua", "assets/atlas64.png")
   collisionTiles = createBlockingTiles(map, collider, 'blocking')
   scoreTiles = getScoreTiles(map, collider, 'score')
+
+  signpost = love.graphics.newImage('assets/Signpost.png')
 
   -- set up the player
   --player.x, player.y = 100, 100
@@ -316,6 +324,7 @@ function love.update(dt)
   end
 
   -- flip on the state machine
+
   -- initialising
   if state == 0 then
       -- set init parms
@@ -327,6 +336,7 @@ function love.update(dt)
       score = 0
       for i, tile in ipairs(scoreTiles) do
         tile.fill = 0
+        tile.full = false
       end
       state = 1
       player.x = getPlayerStart(map).x
@@ -345,226 +355,251 @@ function love.update(dt)
     end
   -- run the game
   elseif state == 2 then
-    -- play the game
-    player.moving = false
-    rotateAngle = rotateAngle + 1
-    if rotateAngle > 360 then rotateAngle = 0 end
-        -- NEW! 8 direction movement
-        if love.keyboard.isScancodeDown('left', 'a') then
-          if love.keyboard.isScancodeDown('up', 'w') then
-            if player.x > (player.grid.frameWidth/2) and player.y > (player.grid.frameHeight/2) then
-              player.x = player.x - (player.speed * dt)
-              player.y = player.y - (player.speed * dt)
-              player.direction = 3
-              player.moving = true
+    if love.keyboard.isScancodeDown('p') then
+      paused = true
+    end
+
+    -- REMOVE
+    if love.keyboard.isScancodeDown('o') then
+      showSignpost = true
+      randEntry = love.math.random(1,table.getn(bookEntries))
+    end
+    -- REMOVE
+
+
+    if paused == false then
+      -- play the game
+      player.moving = false
+      rotateAngle = rotateAngle + 1
+      if rotateAngle > 360 then rotateAngle = 0 end
+          -- NEW! 8 direction movement
+          if love.keyboard.isScancodeDown('left', 'a') then
+            if love.keyboard.isScancodeDown('up', 'w') then
+              if player.x > (player.grid.frameWidth/2) and player.y > (player.grid.frameHeight/2) then
+                player.x = player.x - (player.speed * dt)
+                player.y = player.y - (player.speed * dt)
+                player.direction = 3
+                player.moving = true
+              end
+            elseif love.keyboard.isScancodeDown('down', 's') then
+              if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) and player.x > (player.grid.frameWidth/2) then
+                player.x = player.x - (player.speed * dt)
+                player.y = player.y + (player.speed * dt)
+                player.direction = 1
+                player.moving = true
+              end
+            else
+              if player.x > (player.grid.frameWidth/2) then
+                player.x = player.x - (player.speed * dt)
+                player.direction = 2
+                player.moving = true
+              end
             end
+          elseif love.keyboard.isScancodeDown('right', 'd') then
+            if love.keyboard.isScancodeDown('up', 'w') then
+              if player.y > (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
+                player.x = player.x + (player.speed * dt)
+                player.y = player.y - (player.speed * dt)
+                player.direction = 5
+                player.moving = true
+              end
+            elseif love.keyboard.isScancodeDown('down', 's') then
+              if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
+                player.x = player.x + (player.speed * dt)
+                player.y = player.y + (player.speed * dt)
+                player.direction = 7
+                player.moving = true
+              end
+            else
+              if player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
+                player.x = player.x + (player.speed * dt)
+                player.direction = 6
+                player.moving = true
+              end
+            end
+          elseif love.keyboard.isScancodeDown('up', 'w') then
+              if player.y > (player.grid.frameHeight/2) then
+                player.y = player.y - (player.speed * dt)
+                player.direction = 4
+                player.moving = true
+              end
           elseif love.keyboard.isScancodeDown('down', 's') then
-            if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) and player.x > (player.grid.frameWidth/2) then
-              player.x = player.x - (player.speed * dt)
+            if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) then
               player.y = player.y + (player.speed * dt)
-              player.direction = 1
-              player.moving = true
-            end
-          else
-            if player.x > (player.grid.frameWidth/2) then
-              player.x = player.x - (player.speed * dt)
-              player.direction = 2
+              player.direction = 0
               player.moving = true
             end
           end
-        elseif love.keyboard.isScancodeDown('right', 'd') then
-          if love.keyboard.isScancodeDown('up', 'w') then
-            if player.y > (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
-              player.x = player.x + (player.speed * dt)
-              player.y = player.y - (player.speed * dt)
-              player.direction = 5
-              player.moving = true
-            end
-          elseif love.keyboard.isScancodeDown('down', 's') then
-            if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
-              player.x = player.x + (player.speed * dt)
-              player.y = player.y + (player.speed * dt)
-              player.direction = 7
-              player.moving = true
-            end
-          else
-            if player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
-              player.x = player.x + (player.speed * dt)
-              player.direction = 6
-              player.moving = true
-            end
-          end
-        elseif love.keyboard.isScancodeDown('up', 'w') then
-            if player.y > (player.grid.frameHeight/2) then
-              player.y = player.y - (player.speed * dt)
-              player.direction = 4
-              player.moving = true
-            end
-        elseif love.keyboard.isScancodeDown('down', 's') then
-          if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) then
-            player.y = player.y + (player.speed * dt)
-            player.direction = 0
-            player.moving = true
-          end
-        end
 
 
-    -- update animations
-    player.anIDown:update(dt)
-    player.anMDown:update(dt)
-    player.anIDownLeft:update(dt)
-    player.anMDownLeft:update(dt)
-    player.anILeft:update(dt)
-    player.anMLeft:update(dt)
-    player.anIUpLeft:update(dt)
-    player.anMUpLeft:update(dt)
-    player.anIUp:update(dt)
-    player.anMUp:update(dt)
-    player.anIUpRight:update(dt)
-    player.anMUpRight:update(dt)
-    player.anIRight:update(dt)
-    player.anMRight:update(dt)
-    player.anIDownRight:update(dt)
-    player.anMDownRight:update(dt)
+      -- update animations
+      player.anIDown:update(dt)
+      player.anMDown:update(dt)
+      player.anIDownLeft:update(dt)
+      player.anMDownLeft:update(dt)
+      player.anILeft:update(dt)
+      player.anMLeft:update(dt)
+      player.anIUpLeft:update(dt)
+      player.anMUpLeft:update(dt)
+      player.anIUp:update(dt)
+      player.anMUp:update(dt)
+      player.anIUpRight:update(dt)
+      player.anMUpRight:update(dt)
+      player.anIRight:update(dt)
+      player.anMRight:update(dt)
+      player.anIDownRight:update(dt)
+      player.anMDownRight:update(dt)
 
-    -- update
-    screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
-    if screen.transformationX > 0 then
-      screen.transformationX = 0
-    elseif screen.transformationX < -((map.file.width * map.file.tilewidth) - love.graphics.getWidth()) then
-      screen.transformationX = -((map.file.width * map.file.tilewidth) - love.graphics.getWidth())
-    end
-    screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
-    if screen.transformationY > 0 then
-      screen.transformationY = 0
-    elseif screen.transformationY < -((map.file.height * map.file.tileheight) - love.graphics.getHeight()) then
-      screen.transformationY = -((map.file.height * map.file.tileheight) - love.graphics.getHeight())
-    end
-
-    -- update positions of piss
-
-    --table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
-    --    map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
-    --    map.file.layers[scoreLayer].objects[i].width/2))
-    --for i,v in ipairs(pissStream) do
-      --v.x = v.x + (v.dx* dt)
-      --pissStream[i].bbox.name = 'piss'
-      --if v.x < -20 or v.x > (map.file.width * map.file.tilewidth) + 20 then
-        --collider:remove(pissStream[i].bbox)
-        --table.remove(pissStream, i)
-      --elseif checkCircularCollision(luigi.x, luigi.y, v.x, v.y, luigi.radius, v.radius) then
-        --collider:remove(pissStream[i].bbox)
-        --table.remove(pissStream, i)
-        --luigiScore = luigiScore + 1
-        --luigi.x = luigi.x + (v.dx * dt)
-        --luigi.y = luigi.y + (v.dy * dt)
-      --end
-      --v.y = v.y + (v.dy* dt)
-      --if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
-        --collider:remove(pissStream[i].bbox)
-        --table.remove(pissStream, i)
-      --end
-    --end
-
-    -- do we want to stop peeing?
-    if pissStamina > 0 and love.mouse.isDown(1) and staminaTimer >= staminaTimerMax then
-      pissStamina = pissStamina - (20 * dt)
-      if pissStamina <= 0 then staminaTimer = 0 end
-      -- REMOVE THIS BEFORE RELEASE!
-    elseif love.mouse.isDown(2) then
-    else
-        local startX = player.x
-        local startY = player.y
-        local mouseX = love.mouse.getX() - screen.transformationX
-        local mouseY = love.mouse.getY() - screen.transformationY
-        local angle = math.atan2((mouseY - startY), (mouseX - startX))
-        local bulletDx = (player.peespeed - player.deceleration) * math.cos(angle)
-        local bulletDy = (player.peespeed - player.deceleration) * math.sin(angle)
-        table.insert(pissStream, {x = startX,
-                                  y = startY,
-                                  dx = bulletDx,
-                                  dy = bulletDy,
-                                  radius = 0,
-                                  bbox = collider:circle(startX, startY, 5)})
-        pissStream[table.getn(pissStream)].bbox.name = 'piss'
-        pissTank = pissTank - 1
-        pissStamina = pissStamina + (20 * dt)
-        if pissStamina > pissStaminaMax then pissStamina = pissStaminaMax end
-        if staminaTimer < staminaTimerMax then staminaTimer = staminaTimer + (10 * dt) end
-    end
-
-    --update player bounding bbox
-
-    for shape, delta in pairs(collider:collisions(luigi.bbox)) do
-      if shape.name ~= 'piss' then
-        luigi.y = luigi.y + delta.y
-        luigi.x = luigi.x + delta.x
+      -- update
+      screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
+      if screen.transformationX > 0 then
+        screen.transformationX = 0
+      elseif screen.transformationX < -((map.file.width * map.file.tilewidth) - love.graphics.getWidth()) then
+        screen.transformationX = -((map.file.width * map.file.tilewidth) - love.graphics.getWidth())
       end
-    end
-    luigi.bbox:moveTo(luigi.x, luigi.y)
-
-    for shape, delta in pairs(collider:collisions(player.bbox)) do
-      if shape.name ~= 'piss' and shape.name ~= 'luigi' then
-        player.y = player.y + delta.y
-        player.x = player.x + delta.x
+      screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
+      if screen.transformationY > 0 then
+        screen.transformationY = 0
+      elseif screen.transformationY < -((map.file.height * map.file.tileheight) - love.graphics.getHeight()) then
+        screen.transformationY = -((map.file.height * map.file.tileheight) - love.graphics.getHeight())
       end
-    end
-    player.bbox:moveTo(player.x, player.y)
 
-    for i,v in ipairs(pissStream) do
-      for shape, delta in pairs(collider:collisions(v.bbox)) do
-        if shape.name == 'score' then
-          collider:remove(v.bbox)
-          table.remove(pissStream, i)
-          if shape.fill + 1 < 101 then
-            shape.fill = shape.fill + 1
-            score = score + 1
-          end
-        elseif shape.name == 'blocking' then
-          collider:remove(v.bbox)
-          table.remove(pissStream, i)
-        elseif shape.name == 'luigi' then
-          collider:remove(v.bbox)
-          table.remove(pissStream, i)
-          luigiScore = luigiScore + 1
+      -- update positions of piss
+
+      --table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
+      --    map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
+      --    map.file.layers[scoreLayer].objects[i].width/2))
+      --for i,v in ipairs(pissStream) do
+        --v.x = v.x + (v.dx* dt)
+        --pissStream[i].bbox.name = 'piss'
+        --if v.x < -20 or v.x > (map.file.width * map.file.tilewidth) + 20 then
+          --collider:remove(pissStream[i].bbox)
+          --table.remove(pissStream, i)
+        --elseif checkCircularCollision(luigi.x, luigi.y, v.x, v.y, luigi.radius, v.radius) then
+          --collider:remove(pissStream[i].bbox)
+          --table.remove(pissStream, i)
+          --luigiScore = luigiScore + 1
+          --luigi.x = luigi.x + (v.dx * dt)
+          --luigi.y = luigi.y + (v.dy * dt)
+        --end
+        --v.y = v.y + (v.dy* dt)
+        --if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
+          --collider:remove(pissStream[i].bbox)
+          --table.remove(pissStream, i)
+        --end
+      --end
+
+      -- do we want to stop peeing?
+      if pissStamina > 0 and love.mouse.isDown(1) and staminaTimer >= staminaTimerMax then
+        pissStamina = pissStamina - (20 * dt)
+        if pissStamina <= 0 then staminaTimer = 0 end
+        -- REMOVE THIS BEFORE RELEASE!
+      elseif love.mouse.isDown(2) then
+      else
+          local startX = player.x
+          local startY = player.y
+          local mouseX = love.mouse.getX() - screen.transformationX
+          local mouseY = love.mouse.getY() - screen.transformationY
+          local angle = math.atan2((mouseY - startY), (mouseX - startX))
+          local bulletDx = (player.peespeed - player.deceleration) * math.cos(angle)
+          local bulletDy = (player.peespeed - player.deceleration) * math.sin(angle)
+          table.insert(pissStream, {x = startX,
+                                    y = startY,
+                                    dx = bulletDx,
+                                    dy = bulletDy,
+                                    radius = 0,
+                                    bbox = collider:circle(startX, startY, 5)})
+          pissStream[table.getn(pissStream)].bbox.name = 'piss'
+          pissTank = pissTank - 1
+          pissStamina = pissStamina + (20 * dt)
+          if pissStamina > pissStaminaMax then pissStamina = pissStaminaMax end
+          if staminaTimer < staminaTimerMax then staminaTimer = staminaTimer + (10 * dt) end
+      end
+
+      --update player bounding bbox
+
+      for shape, delta in pairs(collider:collisions(luigi.bbox)) do
+        if shape.name ~= 'piss' then
+          luigi.y = luigi.y + delta.y
+          luigi.x = luigi.x + delta.x
         end
       end
-    end
+      luigi.bbox:moveTo(luigi.x, luigi.y)
 
-    for i, v in ipairs(pissStream) do
-      v.x = v.x + (v.dx* dt)
-      v.y = v.y + (v.dy* dt)
-      v.bbox:moveTo(v.x, v.y)
-    end
+      for shape, delta in pairs(collider:collisions(player.bbox)) do
+        if shape.name ~= 'piss' and shape.name ~= 'luigi' then
+          player.y = player.y + delta.y
+          player.x = player.x + delta.x
+        end
+      end
+      player.bbox:moveTo(player.x, player.y)
 
+      for i,v in ipairs(pissStream) do
+        for shape, delta in pairs(collider:collisions(v.bbox)) do
+          if shape.name == 'score' then
+            collider:remove(v.bbox)
+            table.remove(pissStream, i)
+            if shape.fill + 1 < 101 then
+              shape.fill = shape.fill + 1
+              score = score + 1
+            elseif shape.full == false then
+              -- pause and show the signpost
+              paused = true
+              showSignpost = true
+              randEntry = love.math.random(1,table.getn(bookEntries))
+              shape.full = true
+            end
+          elseif shape.name == 'blocking' then
+            collider:remove(v.bbox)
+            table.remove(pissStream, i)
+          elseif shape.name == 'luigi' then
+            collider:remove(v.bbox)
+            table.remove(pissStream, i)
+            luigiScore = luigiScore + 1
+          end
+        end
+      end
 
-
-    -- find the closest pee
-    chaseObject.dist = 10000000
-    if next(pissStream) ~= nil then
       for i, v in ipairs(pissStream) do
-        local sd = math.dist(luigi.x, luigi.y, v.x, v.y)
-        if sd < chaseObject.dist then
-            chaseObject.dist = sd
-            chaseObject.x = v.x
-            chaseObject.y = v.y
-            chaseObject.radius = 0
-            chaseObject.name = 'piss'
+        v.x = v.x + (v.dx* dt)
+        v.y = v.y + (v.dy* dt)
+        v.bbox:moveTo(v.x, v.y)
+      end
+
+
+
+      -- find the closest pee
+      chaseObject.dist = 10000000
+      if next(pissStream) ~= nil then
+        for i, v in ipairs(pissStream) do
+          local sd = math.dist(luigi.x, luigi.y, v.x, v.y)
+          if sd < chaseObject.dist then
+              chaseObject.dist = sd
+              chaseObject.x = v.x
+              chaseObject.y = v.y
+              chaseObject.radius = 0
+              chaseObject.name = 'piss'
+          end
         end
+      else
+          chaseObject.dist = sd
+          chaseObject.x = player.x
+          chaseObject.y = player.y
+          chaseObject.radius = player.radius
+          chaseObject.name = 'player'
+      end
+      -- get our boy movin'
+      moveTowards(luigi, dt, chaseObject)
+
+      -- end the game if we're out of piss
+      if pissTank <= 0 then
+        state = 3
       end
     else
-        chaseObject.dist = sd
-        chaseObject.x = player.x
-        chaseObject.y = player.y
-        chaseObject.radius = player.radius
-        chaseObject.name = 'player'
-    end
-    -- get our boy movin'
-    moveTowards(luigi, dt, chaseObject)
-
-    -- end the game if we're out of piss
-    if pissTank <= 0 then
-      state = 3
+      if love.keyboard.isScancodeDown('space') then
+        paused = false
+        showSignpost = false
+      end
     end
   elseif state == 3 then
     -- end game
@@ -678,10 +713,31 @@ function love.draw()
     end
     love.graphics.setColor(0, 256, 0)
     --love.graphics.print('Mouse at '..mouse.x..', '..mouse.y, 10, love.graphics.getHeight()-40)
+    if paused == true then -- paused
+      love.graphics.setColor(0, 0, 0, 200)
+      love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+      love.graphics.setColor(256, 256, 256)
+      love.graphics.printf('..PAWSED..\r\n\r\nPress SPACE to continue...',
+        0, 10, love.graphics.getWidth(), 'center')
+      if showSignpost == true then
+        love.graphics.draw(signpost, (love.graphics.getWidth()/2)-((signpost:getWidth()/2)),
+          (love.graphics.getHeight()/2)-((signpost:getHeight()/1.5)))
+        local textX = 0
+        local textY = 275
+        love.graphics.setFont(signFont)
+        love.graphics.setColor(256, 256, 256, 50)
+        love.graphics.printf(bookEntries[randEntry],
+          textX+1, textY+1, love.graphics.getWidth(), 'center')
+        love.graphics.setColor(0, 0, 0, 100)
+        love.graphics.printf(bookEntries[randEntry],
+          textX-1, textY-1, love.graphics.getWidth(), 'center')
+        love.graphics.setColor(48, 30, 15)
+        love.graphics.printf(bookEntries[randEntry],
+          textX, textY, love.graphics.getWidth(), 'center')
+      end
+    end
 
-
-  end
-  if state == 3 then
+  elseif state == 3 then
     love.graphics.push()
     love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
       love.graphics.getHeight()/(map.file.height * map.file.tileheight))
@@ -698,8 +754,7 @@ function love.draw()
       0, 200, love.graphics.getWidth(), 'center')
     love.graphics.rectangle('fill', 100, 430, love.graphics.getWidth()-200, 1)
     love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
-  end
-  if state == 1 then
+  elseif state == 1 then
     love.graphics.push()
     love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
       love.graphics.getHeight()/(map.file.height * map.file.tileheight))
@@ -721,10 +776,11 @@ function love.draw()
     love.graphics.printf('WASD move doggo\r\nClick mous to make peep',
       0, 400, love.graphics.getWidth(), 'center')
     love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
+
   end
-  love.graphics.setColor(256, 256, 256)
-  text = 'Length of pissStream is '..table.getn(pissStream)
-  love.graphics.print(text,10, 100)
+  --love.graphics.setColor(256, 256, 256)
+  --text = 'Length of pissStream is '..table.getn(pissStream)
+  --love.graphics.print(text,10, 100)
 
 
 end --love.draw()
