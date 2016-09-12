@@ -1,7 +1,7 @@
 local anim8 = require 'anim8'
 local HC = require 'HC'
 require 'bookEntries'
-debug = true
+debug = false
 fullscreen = false
 newFont = nil
 luigiScore = nil
@@ -25,6 +25,8 @@ screen = {}
 state = 0
 signpost = nil
 paused = false
+glow = 0
+glowUp = true
 -- STATES:
 -- 0 - Init
 -- 1 - Intro
@@ -404,6 +406,18 @@ function love.update(dt)
       end
     end
 
+    if glowUp == true then
+      glow = glow + 2
+      if glow >= 200 then
+        glowUp = false
+      end
+    else
+      glow = glow - 2
+      if glow <= 0 then
+        glowUp = true
+        glow = 0
+      end
+    end
 
     if paused == false then
       -- play the game
@@ -500,17 +514,26 @@ function love.update(dt)
       peeOrb.an75:update(dt)
 
       -- update
-      screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
-      if screen.transformationX > 0 then
-        screen.transformationX = 0
-      elseif screen.transformationX < -((map.file.width * map.file.tilewidth) - love.graphics.getWidth()) then
-        screen.transformationX = -((map.file.width * map.file.tilewidth) - love.graphics.getWidth())
+      if love.graphics.getWidth() < map.file.width * map.file.tilewidth then
+        screen.transformationX = math.floor(-player.x + (love.graphics.getWidth()/2))
+        if screen.transformationX > 0 then
+          screen.transformationX = 0
+        elseif screen.transformationX < -((map.file.width * map.file.tilewidth) - love.graphics.getWidth()) then
+          screen.transformationX = -((map.file.width * map.file.tilewidth) - love.graphics.getWidth())
+        end
+      else
+        screen.transformationX = (love.graphics.getWidth() - (map.file.width * map.file.tilewidth))/2
       end
-      screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
-      if screen.transformationY > 0 then
-        screen.transformationY = 0
-      elseif screen.transformationY < -((map.file.height * map.file.tileheight) - love.graphics.getHeight()) then
-        screen.transformationY = -((map.file.height * map.file.tileheight) - love.graphics.getHeight())
+
+      if love.graphics.getHeight() < map.file.height * map.file.tileheight then
+        screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
+        if screen.transformationY > 0 then
+          screen.transformationY = 0
+        elseif screen.transformationY < -((map.file.height * map.file.tileheight) - love.graphics.getHeight()) then
+          screen.transformationY = -((map.file.height * map.file.tileheight) - love.graphics.getHeight())
+        end
+      else
+        screen.transformationY = (love.graphics.getHeight() - (map.file.height * map.file.tileheight))/2
       end
 
       -- do we want to stop peeing?
@@ -654,21 +677,21 @@ function love.draw()
     if scoreTiles[1].active == true then
       if scoreTiles[4].active == true then
         love.graphics.setLineWidth(6)
-        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.setColor(237, 133, 67, (glow/4)*3)
         love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
           scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
-        love.graphics.setLineWidth(1)
-        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(200, 0, 0, glow)
         love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
           scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
       end
       if scoreTiles[3].active == true then
         love.graphics.setLineWidth(6)
-        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.setColor(237, 133, 67, (glow/4)*3)
         love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
           scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2))
-        love.graphics.setLineWidth(1)
-        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(200, 0, 0, glow)
         love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
           scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2))
       end
@@ -676,21 +699,21 @@ function love.draw()
     if scoreTiles[2].active == true then
       if scoreTiles[4].active == true then
         love.graphics.setLineWidth(6)
-        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.setColor(237, 133, 67, (glow/4)*3)
         love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
           scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
-        love.graphics.setLineWidth(1)
-        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(200, 0, 0, glow)
         love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
           scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
       end
       if scoreTiles[5].active == true then
         love.graphics.setLineWidth(6)
-        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.setColor(237, 133, 67, (glow/4)*3)
         love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
           scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
-        love.graphics.setLineWidth(1)
-        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(200, 0, 0, glow)
         love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
           scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
       end
@@ -698,15 +721,24 @@ function love.draw()
     if scoreTiles[3].active == true then
       if scoreTiles[5].active == true then
         love.graphics.setLineWidth(6)
-        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.setColor(237, 133, 67, (glow/4)*3)
         love.graphics.line(scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2),
           scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
-        love.graphics.setLineWidth(1)
-        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(200, 0, 0, glow)
         love.graphics.line(scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2),
           scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
       end
     end
+
+    for i, v in ipairs(scoreTiles) do
+      if v.active == true then
+        love.graphics.setColor(200, 0, 0, glow/3.5)
+        love.graphics.circle('fill', v.x+(v.width/2),
+          v.y+(v.height/2)+5, 25, 20)
+      end
+    end
+
     love.graphics.setColor(256, 256, 256)
 
 
@@ -890,7 +922,7 @@ function love.draw()
 
   end
   --love.graphics.setColor(256, 256, 256)
-  --text = player.sprite:getWidth()..player.sprite:getHeight()
+  --text = glow
   --love.graphics.print(text,10, 100)
 
 
