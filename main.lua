@@ -1,6 +1,8 @@
 local anim8 = require 'anim8'
 local HC = require 'HC'
 require 'bookEntries'
+debug = true
+fullscreen = false
 newFont = nil
 luigiScore = nil
 score = nil
@@ -16,6 +18,7 @@ staminaTimerMax = nil
 rotateAngle = nil
 collisionTiles = {}
 scoreTiles = {}
+peeOrb = {}
 luigi = {}
 map = {}
 screen = {}
@@ -34,7 +37,6 @@ rotateTargetX = 0
 rotateTargetY = 0
 
 -- Return the quad for a tileid
--- TODO: accept a tileset as a parm
 function getQuad(map, tileId)
   -- Get the x index of the tile
   tileX = (((tileId -1) % (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth)) * map.tilesets[1].tilewidth)
@@ -54,7 +56,6 @@ function getTiles(map)
   for i=1, table.getn(map.layers) do
     if map.layers[i].type == "tilelayer" then
       for v in pairs(map.layers[i].data) do
-        --print(map.layers[i].data[v])
         ids[n] = map.layers[i].data[v]
         n = n+1
       end
@@ -113,7 +114,6 @@ function createBlockingTiles(map, collider, blockingLayerString)
       collisionTileTable[table.getn(collisionTileTable)].name = 'blocking'
     end
   end
-  --collider:rectangle(0, 0, 32, 32)
   return collisionTileTable
 end -- createBlockingTiles()
 
@@ -156,7 +156,7 @@ function getScoreTiles(map, collider, scoreLayerString, psystem)
       scoreObjectTable[table.getn(scoreObjectTable)].particles = psystem:clone()
     end
   end
-  -- sort the roder of the array based on the object name (which is a string!)
+  -- sort the order of the array based on the object name (which is a string!)
   local sortFunc = function(a, b) return a.number < b.number end
   table.sort(scoreObjectTable, sortFunc)
   return scoreObjectTable
@@ -229,7 +229,6 @@ function checkCircularCollision(ax, ay, bx, by, ar, br)
 end -- checkCircularCollision()
 
 function moveTowards(object, dt, toObject)
-  --local angle = findRotation(object.x, object.y, toObject.x, toObject.y)
   if toObject.name == 'player' then
     -- walk around the player
     --rotateTargetX = toObject.x + (100 * math.cos(math.rad(rotateAngle)))
@@ -252,8 +251,9 @@ end -- moveTowards()
 
 function love.load()
   newFont = love.graphics.newFont('assets/ComingSoon.ttf', 25)
-  compyFont = love.graphics.newFont('assets/256BYTES.TTF', 15)
+  --compyFont = love.graphics.newFont('assets/256BYTES.TTF', 15)
   signFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 20)
+  bigDefault = love.graphics.newFont('assets/ComingSoon.ttf', 40)
   local particle = love.graphics.newImage('assets/particle.png')
   psystem = love.graphics.newParticleSystem(particle, 32)
   psystem:setParticleLifetime(2, 4) -- Particles live at least 2s and at most 5s.
@@ -261,7 +261,7 @@ function love.load()
 	psystem:setSizeVariation(1)
 	psystem:setLinearAcceleration(5, -8, -5, -40)
 	psystem:setColors(255, 255, 255, 255, 255, 255, 255, 0) -- Fade to transparency.
-  --psystem:stop()
+  psystem:stop()
 
   collider = HC.new(150)
   -- do my awesome map loading!
@@ -271,8 +271,12 @@ function love.load()
 
   signpost = love.graphics.newImage('assets/Signpost.png')
 
+  peeOrb.x = 100
+  peeOrb.y = 100
+  peeOrb.sprite = love.graphics.newImage('assets/peeorb.png')
+  peeOrb.grid = anim8.newGrid(26, 26, peeOrb.sprite:getWidth(), peeOrb.sprite:getHeight())
+
   -- set up the player
-  --player.x, player.y = 100, 100
   player.x = getPlayerStart(map).x
   player.y = getPlayerStart(map).y
   player.name = 'player'
@@ -307,6 +311,13 @@ function love.load()
   player.anIDownRight = anim8.newAnimation(player.grid('1-4', 3), 0.2):flipH()
   player.anMDownRight = anim8.newAnimation(player.grid('5-8', 5), 0.2):flipH()
 
+  -- crate the pee orb animations
+  peeOrb.anEmpty = anim8.newAnimation(peeOrb.grid(1, 1), 0.2)
+  peeOrb.anFull = anim8.newAnimation(peeOrb.grid(2, 1), 0.2)
+  peeOrb.an25 = anim8.newAnimation(peeOrb.grid('2-5', 2, '5-2', 2), 0.2)
+  peeOrb.an50 = anim8.newAnimation(peeOrb.grid('2-5', 3, '5-2', 3), 0.2)
+  peeOrb.an75 = anim8.newAnimation(peeOrb.grid('2-5', 4, '5-2', 4), 0.2)
+
   pissBar = love.graphics.newImage('assets/yellowblock.png')
   -- set up our boy
   luigi.x , luigi.y, luigi.speed, luigi.radius = 0, 0, 300, 10
@@ -330,7 +341,7 @@ function love.load()
   pissStaminaMax = 100
   staminaTimerMax = 10
 
-  --love.mouse.setGrabbed(true)
+  love.mouse.setGrabbed(true)
 end --love.load()
 
 function love.update(dt)
@@ -338,8 +349,19 @@ function love.update(dt)
     love.event.push('quit')
   end
 
-  -- flip on the state machine
+  function love.keypressed(key, scancode, isrepeat)
+    if key == 'f' and isrepeat == false then
+      if fullscreen == false then
+        fullscreen = true
+        love.window.setFullscreen(fullscreen)
+      else
+        fullscreen = false
+        love.window.setFullscreen(fullscreen)
+      end
+    end
+  end
 
+  -- flip on the state machine
   -- initialising
   if state == 0 then
       -- set init parms
@@ -375,12 +397,12 @@ function love.update(dt)
       paused = true
     end
 
-    -- REMOVE
-    if love.keyboard.isScancodeDown('o') then
-      showSignpost = true
-      randEntry = love.math.random(1,table.getn(bookEntries))
+    if debug == true then
+      if love.keyboard.isScancodeDown('o') then
+        showSignpost = true
+        randEntry = love.math.random(1,table.getn(bookEntries))
+      end
     end
-    -- REMOVE
 
 
     if paused == false then
@@ -472,6 +494,11 @@ function love.update(dt)
       player.anIDownRight:update(dt)
       player.anMDownRight:update(dt)
 
+      -- update the pee orbs
+      peeOrb.an25:update(dt)
+      peeOrb.an50:update(dt)
+      peeOrb.an75:update(dt)
+
       -- update
       screen.transformationX = math.floor(-player.x + (love.graphics.getHeight()/2))
       if screen.transformationX > 0 then
@@ -486,37 +513,12 @@ function love.update(dt)
         screen.transformationY = -((map.file.height * map.file.tileheight) - love.graphics.getHeight())
       end
 
-      -- update positions of piss
-
-      --table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
-      --    map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
-      --    map.file.layers[scoreLayer].objects[i].width/2))
-      --for i,v in ipairs(pissStream) do
-        --v.x = v.x + (v.dx* dt)
-        --pissStream[i].bbox.name = 'piss'
-        --if v.x < -20 or v.x > (map.file.width * map.file.tilewidth) + 20 then
-          --collider:remove(pissStream[i].bbox)
-          --table.remove(pissStream, i)
-        --elseif checkCircularCollision(luigi.x, luigi.y, v.x, v.y, luigi.radius, v.radius) then
-          --collider:remove(pissStream[i].bbox)
-          --table.remove(pissStream, i)
-          --luigiScore = luigiScore + 1
-          --luigi.x = luigi.x + (v.dx * dt)
-          --luigi.y = luigi.y + (v.dy * dt)
-        --end
-        --v.y = v.y + (v.dy* dt)
-        --if v.y < -20 or v.y > (map.file.height * map.file.tileheight) + 20 then
-          --collider:remove(pissStream[i].bbox)
-          --table.remove(pissStream, i)
-        --end
-      --end
-
       -- do we want to stop peeing?
       if pissStamina > 0 and love.mouse.isDown(1) and staminaTimer >= staminaTimerMax then
         pissStamina = pissStamina - (20 * dt)
         if pissStamina <= 0 then staminaTimer = 0 end
         -- REMOVE THIS BEFORE RELEASE!
-      elseif love.mouse.isDown(2) then
+      elseif love.mouse.isDown(2) and debug == true then
       else
           local startX = player.x
           local startY = player.y
@@ -632,7 +634,6 @@ function love.update(dt)
 end --love.update()
 
 function love.draw()
-  --love.graphics.scale(1.5, 1.5)
   love.graphics.setFont(newFont)
   if state == 2 then
     love.graphics.push()
@@ -706,11 +707,26 @@ function love.draw()
           scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
       end
     end
+    love.graphics.setColor(256, 256, 256)
 
 
     for i, v in ipairs(scoreTiles) do
       if v.active == true then
-        love.graphics.draw(v.particles, v.x+(v.width/2), v.y+(v.height/2))
+        love.graphics.draw(v.particles, v.x+(v.width/2), v.y+3)
+      end
+    end
+    -- draw the pee orbs
+    for i, v in ipairs(scoreTiles) do
+      if v.fill == 0 then
+        peeOrb.anEmpty:draw(peeOrb.sprite, v.x-3, v.y)
+      elseif v.fill > 0 and v.fill < 33 then
+        peeOrb.an25:draw(peeOrb.sprite, v.x-3, v.y)
+      elseif v.fill >= 33 and v.fill < 66 then
+        peeOrb.an50:draw(peeOrb.sprite, v.x-3, v.y)
+      elseif v.fill >= 66 and v.fill < 100 then
+        peeOrb.an75:draw(peeOrb.sprite, v.x-3, v.y)
+      elseif v.fill >= 100 then
+        peeOrb.anFull:draw(peeOrb.sprite, v.x-3, v.y)
       end
     end
 
@@ -765,24 +781,29 @@ function love.draw()
     love.graphics.draw(player.arrow, player.x, player.y, math.rad(findRotation(player.x, player.y, luigi.x, luigi.y)), 1, 1, player.arrow:getWidth()/2, player.arrow:getHeight()/2)
 
 
-    love.graphics.setColor(256, 256, 256)
+
+
+
     -- draw overlay layer
     drawMap(map, 4, 4)
+
     -- shade bounding boxes for testing
-    love.graphics.setColor(10, 10, 10, 150)
-    --player.bbox:draw('fill')
-    --luigi.bbox:draw('fill')
-    --for i = 1, table.getn(collisionTiles) do
-    --  collisionTiles[i]:draw('fill')
-    --end
-    for i = 1, table.getn(scoreTiles) do
+    if debug == true then
       love.graphics.setColor(10, 10, 10, 150)
-      scoreTiles[i]:draw('fill')
-      love.graphics.setFont(compyFont)
-      love.graphics.setColor(0, 256, 0)
-      love.graphics.print(scoreTiles[i].fill, scoreTiles[i].x, scoreTiles[i].y-5)
-      love.graphics.print(scoreTiles[i].number, scoreTiles[i].x, scoreTiles[i].y+10)
-      love.graphics.setFont(newFont)
+      player.bbox:draw('fill')
+      luigi.bbox:draw('fill')
+      for i = 1, table.getn(collisionTiles) do
+        collisionTiles[i]:draw('fill')
+      end
+      for i = 1, table.getn(scoreTiles) do
+        --love.graphics.setColor(10, 10, 10, 150)
+        scoreTiles[i]:draw('fill')
+        --love.graphics.setFont(compyFont)
+        --love.graphics.setColor(0, 256, 0)
+        --love.graphics.print(scoreTiles[i].fill, scoreTiles[i].x, scoreTiles[i].y-5)
+        --love.graphics.print(scoreTiles[i].number, scoreTiles[i].x, scoreTiles[i].y+10)
+        --love.graphics.setFont(newFont)
+      end
     end
 
     love.graphics.pop()
@@ -801,18 +822,18 @@ function love.draw()
       love.graphics.draw(pissBar, 10, 40, 0, ((love.graphics.getWidth() - 20) * (pissStamina/pissStaminaMax)), 5)
     end
     love.graphics.setColor(0, 256, 0)
-    --love.graphics.print('Mouse at '..mouse.x..', '..mouse.y, 10, love.graphics.getHeight()-40)
     if paused == true then -- paused
       love.graphics.setColor(0, 0, 0, 200)
       love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
       love.graphics.setColor(256, 256, 256)
-      love.graphics.printf('..PAWSED..\r\n\r\nPress SPACE to continue...',
+      love.graphics.setFont(bigDefault)
+      love.graphics.printf('..PAWSED..\r\nPress SPACE to continue...',
         0, 10, love.graphics.getWidth(), 'center')
       if showSignpost == true then
         love.graphics.draw(signpost, (love.graphics.getWidth()/2)-((signpost:getWidth()/2)),
-          (love.graphics.getHeight()/2)-((signpost:getHeight()/1.5)))
+          (love.graphics.getHeight()/2)-((signpost:getHeight()/2)))
         local textX = 0
-        local textY = 275
+        local textY = (love.graphics.getHeight()/2)-((signpost:getHeight()/2)) + 30
         love.graphics.setFont(signFont)
         love.graphics.setColor(256, 256, 256, 50)
         love.graphics.printf(bookEntries[randEntry],
@@ -853,18 +874,19 @@ function love.draw()
     love.graphics.setColor(0, 0, 0, 200)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     love.graphics.setColor(256, 256, 256)
-    love.graphics.rectangle('fill', 100, 75, love.graphics.getWidth()-200, 1)
-    love.graphics.printf('You be an doggo.\r\nYou need peeps.'
-      ..'\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.'
-      ..'\r\nThey is yors.\r\n\r\nNon for Luigi',
-      0, 100, love.graphics.getWidth(), 'center')
-    player.anIDownLeft:draw(player.sprite, 100, 100, math.rad(350), 1, 1)
-    --love.graphics.draw(player.sprite, 100, 110, math.rad(330), 1, 1)
-    love.graphics.draw(luigi.sprite, 450, 250, math.rad(20), 1, 1)
-    love.graphics.rectangle('fill', 100, 375, love.graphics.getWidth()-200, 1)
-    love.graphics.printf('WASD move doggo\r\nClick mous to make peep',
-      0, 400, love.graphics.getWidth(), 'center')
-    love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
+    --love.graphics.rectangle('fill', 100, 75, love.graphics.getWidth()-200, 1)
+    local splashScreen = love.graphics.newImage('assets/SplashScreen.png')
+    love.graphics.draw(splashScreen, (love.graphics.getWidth()/2)-(splashScreen:getWidth()/2), (love.graphics.getHeight()/2)-(splashScreen:getHeight()/2))
+    --love.graphics.printf('You be an doggo.\r\nYou need peeps.'
+    --  ..'\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.'
+  --    ..'\r\nThey is yors.\r\n\r\nNon for Luigi',
+    --  0, 100, love.graphics.getWidth(), 'center')
+    --player.anIDownLeft:draw(player.sprite, 100, 100, math.rad(350), 1, 1)
+    --love.graphics.draw(luigi.sprite, 450, 250, math.rad(20), 1, 1)
+    --love.graphics.rectangle('fill', 100, 375, love.graphics.getWidth()-200, 1)
+    --love.graphics.printf('WASD move doggo\r\nClick mous to make peep',
+    --  0, 400, love.graphics.getWidth(), 'center')
+    --love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
 
   end
   --love.graphics.setColor(256, 256, 256)
