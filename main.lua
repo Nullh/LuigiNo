@@ -117,7 +117,7 @@ function createBlockingTiles(map, collider, blockingLayerString)
   return collisionTileTable
 end -- createBlockingTiles()
 
-function getScoreTiles(map, collider, scoreLayerString)
+function getScoreTiles(map, collider, scoreLayerString, psystem)
   local scoreObjectTable = {}
   local scoreLayer = nil
   for i=1, table.getn(map.file.layers) do
@@ -139,6 +139,8 @@ function getScoreTiles(map, collider, scoreLayerString)
       scoreObjectTable[table.getn(scoreObjectTable)].y = map.file.layers[scoreLayer].objects[i].y
       scoreObjectTable[table.getn(scoreObjectTable)].width = map.file.layers[scoreLayer].objects[i].width
       scoreObjectTable[table.getn(scoreObjectTable)].height = map.file.layers[scoreLayer].objects[i].height
+      scoreObjectTable[table.getn(scoreObjectTable)].number = map.file.layers[scoreLayer].objects[i].name
+      scoreObjectTable[table.getn(scoreObjectTable)].particles = psystem:clone()
     elseif map.file.layers[scoreLayer].objects[i].shape == "ellipse" then
       table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
           map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
@@ -150,9 +152,13 @@ function getScoreTiles(map, collider, scoreLayerString)
       scoreObjectTable[table.getn(scoreObjectTable)].y = map.file.layers[scoreLayer].objects[i].y
       scoreObjectTable[table.getn(scoreObjectTable)].width = map.file.layers[scoreLayer].objects[i].width
       scoreObjectTable[table.getn(scoreObjectTable)].height = map.file.layers[scoreLayer].objects[i].height
+      scoreObjectTable[table.getn(scoreObjectTable)].number = map.file.layers[scoreLayer].objects[i].name
+      scoreObjectTable[table.getn(scoreObjectTable)].particles = psystem:clone()
     end
   end
-
+  -- sort the roder of the array based on the object name (which is a string!)
+  local sortFunc = function(a, b) return a.number < b.number end
+  table.sort(scoreObjectTable, sortFunc)
   return scoreObjectTable
 end -- getScoreTiles()
 
@@ -248,11 +254,20 @@ function love.load()
   newFont = love.graphics.newFont('assets/ComingSoon.ttf', 25)
   compyFont = love.graphics.newFont('assets/256BYTES.TTF', 15)
   signFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 20)
+  local particle = love.graphics.newImage('assets/particle.png')
+  psystem = love.graphics.newParticleSystem(particle, 32)
+  psystem:setParticleLifetime(2, 4) -- Particles live at least 2s and at most 5s.
+	psystem:setEmissionRate(5)
+	psystem:setSizeVariation(1)
+	psystem:setLinearAcceleration(5, -8, -5, -40)
+	psystem:setColors(255, 255, 255, 255, 255, 255, 255, 0) -- Fade to transparency.
+  --psystem:stop()
+
   collider = HC.new(150)
   -- do my awesome map loading!
   map = loadMap("maps/map3.lua", "assets/atlas64.png")
   collisionTiles = createBlockingTiles(map, collider, 'blocking')
-  scoreTiles = getScoreTiles(map, collider, 'score')
+  scoreTiles = getScoreTiles(map, collider, 'score', psystem)
 
   signpost = love.graphics.newImage('assets/Signpost.png')
 
@@ -311,7 +326,7 @@ function love.load()
   screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
 
   -- set init parms
-  pissTankMax = 1000
+  pissTankMax = 3000
   pissStaminaMax = 100
   staminaTimerMax = 10
 
@@ -337,6 +352,7 @@ function love.update(dt)
       for i, tile in ipairs(scoreTiles) do
         tile.fill = 0
         tile.full = false
+        tile.active = false
       end
       state = 1
       player.x = getPlayerStart(map).x
@@ -369,6 +385,12 @@ function love.update(dt)
 
     if paused == false then
       -- play the game
+      for i, v in ipairs(scoreTiles) do
+        if v.active == true then
+          v.particles:update(dt)
+        end
+      end
+
       player.moving = false
       rotateAngle = rotateAngle + 1
       if rotateAngle > 360 then rotateAngle = 0 end
@@ -548,6 +570,8 @@ function love.update(dt)
               showSignpost = true
               randEntry = love.math.random(1,table.getn(bookEntries))
               shape.full = true
+              shape.active = true
+              shape.particles:start()
             end
           elseif shape.name == 'blocking' then
             collider:remove(v.bbox)
@@ -565,8 +589,6 @@ function love.update(dt)
         v.y = v.y + (v.dy* dt)
         v.bbox:moveTo(v.x, v.y)
       end
-
-
 
       -- find the closest pee
       chaseObject.dist = 10000000
@@ -627,7 +649,73 @@ function love.draw()
     end
     love.graphics.setColor(256, 256, 256)
 
+    -- draw the pentagram lines
+    if scoreTiles[1].active == true then
+      if scoreTiles[4].active == true then
+        love.graphics.setLineWidth(6)
+        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
+          scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
+        love.graphics.setLineWidth(1)
+        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
+          scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
+      end
+      if scoreTiles[3].active == true then
+        love.graphics.setLineWidth(6)
+        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
+          scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2))
+        love.graphics.setLineWidth(1)
+        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
+          scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2))
+      end
+    end
+    if scoreTiles[2].active == true then
+      if scoreTiles[4].active == true then
+        love.graphics.setLineWidth(6)
+        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
+          scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
+        love.graphics.setLineWidth(1)
+        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
+          scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
+      end
+      if scoreTiles[5].active == true then
+        love.graphics.setLineWidth(6)
+        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
+          scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
+        love.graphics.setLineWidth(1)
+        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
+          scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
+      end
+    end
+    if scoreTiles[3].active == true then
+      if scoreTiles[5].active == true then
+        love.graphics.setLineWidth(6)
+        love.graphics.setColor(237, 133, 67, 100)
+        love.graphics.line(scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2),
+          scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
+        love.graphics.setLineWidth(1)
+        love.graphics.setColor(200, 0, 0, 200)
+        love.graphics.line(scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2),
+          scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
+      end
+    end
+
+
+    for i, v in ipairs(scoreTiles) do
+      if v.active == true then
+        love.graphics.draw(v.particles, v.x+(v.width/2), v.y+(v.height/2))
+      end
+    end
+
     -- draw our boy
+    love.graphics.setColor(256, 256, 256)
     love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
     -- draw the player
     -- walking animations
@@ -693,6 +781,7 @@ function love.draw()
       love.graphics.setFont(compyFont)
       love.graphics.setColor(0, 256, 0)
       love.graphics.print(scoreTiles[i].fill, scoreTiles[i].x, scoreTiles[i].y-5)
+      love.graphics.print(scoreTiles[i].number, scoreTiles[i].x, scoreTiles[i].y+10)
       love.graphics.setFont(newFont)
     end
 
@@ -779,7 +868,7 @@ function love.draw()
 
   end
   --love.graphics.setColor(256, 256, 256)
-  --text = 'Length of pissStream is '..table.getn(pissStream)
+  --text = player.sprite:getWidth()..player.sprite:getHeight()
   --love.graphics.print(text,10, 100)
 
 
