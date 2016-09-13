@@ -1,5 +1,6 @@
 local anim8 = require 'anim8'
 local HC = require 'HC'
+local shack = require 'shack'
 require 'bookEntries'
 debug = true
 fullscreen = false
@@ -28,6 +29,7 @@ signpost = nil
 paused = false
 glow = 0
 glowUp = true
+fadeIn = nil
 -- STATES:
 -- 0 - Init
 -- 1 - Intro
@@ -275,6 +277,8 @@ function love.load()
   finalePS:setColors(255, 255, 255, 255, 255, 255, 255, 255,255,255,255,0) -- Fade to transparency.
   finalePS:start()
 
+  shack:setDimensions(love.graphics.getWidth(), love.graphics.getHeight())
+
   collider = HC.new(150)
   -- do my awesome map loading!
   map = loadMap("maps/map3.lua", "assets/atlas64.png")
@@ -282,6 +286,7 @@ function love.load()
   scoreTiles = getScoreTiles(map, collider, 'score', psystem)
 
   signpost = love.graphics.newImage('assets/Signpost.png')
+  fadeIn = 0
 
   peeOrb.x = 100
   peeOrb.y = 100
@@ -290,6 +295,7 @@ function love.load()
 
   portal.sprite = love.graphics.newImage('assets/Portal.png')
   portal.grid = anim8.newGrid(128, 128, portal.sprite:getWidth(), portal.sprite:getHeight())
+  portal.active = false
 
   -- set up the player
   player.x = getPlayerStart(map).x
@@ -416,7 +422,13 @@ function love.update(dt)
         showSignpost = true
         randEntry = love.math.random(1,table.getn(bookEntries))
       end
+      if love.keyboard.isScancodeDown('m') then
+        portal.active = true
+      end
     end
+
+    shack:update(dt)
+    shack:setShake(20)
 
     -- increment the glow value up and down
     if glowUp == true then
@@ -529,6 +541,14 @@ function love.update(dt)
       peeOrb.an75:update(dt)
 
       portal.an1:update(dt)
+
+      if scoreTiles[1].active == true
+        and scoreTiles[2].active == true
+        and scoreTiles[3].active == true
+        and scoreTiles[4].active == true
+        and scoreTiles[5].active == true then
+          portal.active = true
+      end
 
       -- update
       if love.graphics.getWidth() < map.file.width * map.file.tilewidth then
@@ -676,9 +696,14 @@ end --love.update()
 function love.draw()
   love.graphics.setFont(newFont)
   if state == 2 then
+
     love.graphics.push()
     -- center the screen on the player
     love.graphics.translate(screen.transformationX, screen.transformationY)
+
+    if portal.active == true then
+      shack:apply()
+    end
 
     -- draw the map
     love.graphics.setColor(256, 256, 256)
@@ -779,13 +804,9 @@ function love.draw()
       end
     end
 
-    if scoreTiles[1].active == true
-      and scoreTiles[2].active == true
-      and scoreTiles[3].active == true
-      and scoreTiles[4].active == true
-      and scoreTiles[5].active == true then
-        love.graphics.draw(finalePS, ((map.file.width * map.file.tilewidth)/2)+20, ((map.file.height * map.file.tileheight)/2)-200)
-        portal.an1:draw(portal.sprite, ((map.file.width * map.file.tilewidth)/2)-44, ((map.file.height * map.file.tileheight)/2)-264)
+    if portal.active == true then
+      love.graphics.draw(finalePS, ((map.file.width * map.file.tilewidth)/2)+20, ((map.file.height * map.file.tileheight)/2)-200)
+      portal.an1:draw(portal.sprite, ((map.file.width * map.file.tilewidth)/2)-44, ((map.file.height * map.file.tileheight)/2)-264)
     end
 
     -- draw our boy
@@ -864,7 +885,16 @@ function love.draw()
       end
     end
 
+    if portal.active == true then
+      if fadeIn < 150 then
+        fadeIn = fadeIn + 1
+      end
+      love.graphics.setColor(100, 0, 0, fadeIn)
+      love.graphics.rectangle('fill', 0, 0, map.file.width * map.file.tilewidth, map.file.height * map.file.tileheight)
+    end
+
     love.graphics.pop()
+
     love.graphics.setColor(256, 256, 256, 200)
     love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
     love.graphics.setColor(0, 0, 0)
@@ -935,20 +965,10 @@ function love.draw()
     --love.graphics.rectangle('fill', 100, 75, love.graphics.getWidth()-200, 1)
     local splashScreen = love.graphics.newImage('assets/SplashScreen.png')
     love.graphics.draw(splashScreen, (love.graphics.getWidth()/2)-(splashScreen:getWidth()/2), (love.graphics.getHeight()/2)-(splashScreen:getHeight()/2))
-    --love.graphics.printf('You be an doggo.\r\nYou need peeps.'
-    --  ..'\r\nLuigi bad doggo, want drink yr peeps.\r\nStop luigi drink your peeps.'
-  --    ..'\r\nThey is yors.\r\n\r\nNon for Luigi',
-    --  0, 100, love.graphics.getWidth(), 'center')
-    --player.anIDownLeft:draw(player.sprite, 100, 100, math.rad(350), 1, 1)
-    --love.graphics.draw(luigi.sprite, 450, 250, math.rad(20), 1, 1)
-    --love.graphics.rectangle('fill', 100, 375, love.graphics.getWidth()-200, 1)
-    --love.graphics.printf('WASD move doggo\r\nClick mous to make peep',
-    --  0, 400, love.graphics.getWidth(), 'center')
-    --love.graphics.print('Press SPACE to start...', 10, love.graphics.getHeight() - 40)
 
   end
   --love.graphics.setColor(256, 256, 256)
-  --text = glow
+  --text = fadeIn
   --love.graphics.print(text,10, 100)
 
 
