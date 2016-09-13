@@ -606,7 +606,7 @@ function love.update(dt)
         if pissStamina <= 0 then staminaTimer = 0 end
         -- REMOVE THIS BEFORE RELEASE!
       elseif love.mouse.isDown(2) and debug == true then
-      else
+      elseif pissTank > 0 then
           local startX = player.x
           local startY = player.y
           local mouseX = love.mouse.getX() - screen.transformationX
@@ -708,7 +708,7 @@ function love.update(dt)
       moveTowards(luigi, dt, chaseObject)
 
       -- end the game if we're out of piss
-      if pissTank <= 0 then
+      if pissTank <= 0 and table.getn(pissStream) == 0 then
         state = 3
       end
     else
@@ -933,6 +933,7 @@ function love.draw()
     love.graphics.setColor(0, 0, 0)
     love.graphics.print('Pee left...', 18, 5)
 
+    love.graphics.setColor(256, 256, 256)
     love.graphics.print('Score: '..score, 10, love.graphics.getHeight() - 50)
 
     if staminaTimer < staminaTimerMax then
