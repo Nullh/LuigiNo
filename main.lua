@@ -1,7 +1,7 @@
 local anim8 = require 'anim8'
 local HC = require 'HC'
 require 'bookEntries'
-debug = false
+debug = true
 fullscreen = false
 newFont = nil
 luigiScore = nil
@@ -19,6 +19,7 @@ rotateAngle = nil
 collisionTiles = {}
 scoreTiles = {}
 peeOrb = {}
+portal = {}
 luigi = {}
 map = {}
 screen = {}
@@ -258,12 +259,21 @@ function love.load()
   bigDefault = love.graphics.newFont('assets/ComingSoon.ttf', 40)
   local particle = love.graphics.newImage('assets/particle.png')
   psystem = love.graphics.newParticleSystem(particle, 32)
-  psystem:setParticleLifetime(2, 4) -- Particles live at least 2s and at most 5s.
+  psystem:setParticleLifetime(2, 4)
 	psystem:setEmissionRate(5)
 	psystem:setSizeVariation(1)
 	psystem:setLinearAcceleration(5, -8, -5, -40)
 	psystem:setColors(255, 255, 255, 255, 255, 255, 255, 0) -- Fade to transparency.
   psystem:stop()
+
+  -- set up the big particle system
+  finalePS = love.graphics.newParticleSystem(particle, 200)
+  finalePS:setParticleLifetime(3, 5) -- Particles live at least 2s and at most 5s.
+  finalePS:setEmissionRate(40)
+  finalePS:setSizeVariation(1)
+  finalePS:setLinearAcceleration(40, -10, -40, -40)
+  finalePS:setColors(255, 255, 255, 255, 255, 255, 255, 255,255,255,255,0) -- Fade to transparency.
+  finalePS:start()
 
   collider = HC.new(150)
   -- do my awesome map loading!
@@ -277,6 +287,9 @@ function love.load()
   peeOrb.y = 100
   peeOrb.sprite = love.graphics.newImage('assets/peeorb.png')
   peeOrb.grid = anim8.newGrid(26, 26, peeOrb.sprite:getWidth(), peeOrb.sprite:getHeight())
+
+  portal.sprite = love.graphics.newImage('assets/Portal.png')
+  portal.grid = anim8.newGrid(128, 128, portal.sprite:getWidth(), portal.sprite:getHeight())
 
   -- set up the player
   player.x = getPlayerStart(map).x
@@ -320,6 +333,8 @@ function love.load()
   peeOrb.an50 = anim8.newAnimation(peeOrb.grid('2-5', 3, '5-2', 3), 0.2)
   peeOrb.an75 = anim8.newAnimation(peeOrb.grid('2-5', 4, '5-2', 4), 0.2)
 
+  portal.an1 = anim8.newAnimation(portal.grid('1-3', 1, '1-3', 2, '1-3', 3, '1-3', 4), 0.2)
+
   pissBar = love.graphics.newImage('assets/yellowblock.png')
   -- set up our boy
   luigi.x , luigi.y, luigi.speed, luigi.radius = 0, 0, 300, 10
@@ -333,13 +348,8 @@ function love.load()
   chaseObject.y = player.y
   chaseObject.radius = 10
 
-  -- set up screen transformation
-  screen.transformationX = math.floor(-player.y + (love.graphics.getHeight()/2))
-
-  screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
-
   -- set init parms
-  pissTankMax = 3000
+  pissTankMax = 2000
   pissStaminaMax = 100
   staminaTimerMax = 10
 
@@ -373,6 +383,8 @@ function love.update(dt)
       rotateAngle = 0
       luigiScore = 0
       score = 0
+      screen.transformationX = math.floor(-player.x + (love.graphics.getWidth()/2))
+      screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
       for i, tile in ipairs(scoreTiles) do
         tile.fill = 0
         tile.full = false
@@ -406,6 +418,7 @@ function love.update(dt)
       end
     end
 
+    -- increment the glow value up and down
     if glowUp == true then
       glow = glow + 2
       if glow >= 200 then
@@ -426,6 +439,8 @@ function love.update(dt)
           v.particles:update(dt)
         end
       end
+
+      finalePS:update(dt)
 
       player.moving = false
       rotateAngle = rotateAngle + 1
@@ -512,6 +527,8 @@ function love.update(dt)
       peeOrb.an25:update(dt)
       peeOrb.an50:update(dt)
       peeOrb.an75:update(dt)
+
+      portal.an1:update(dt)
 
       -- update
       if love.graphics.getWidth() < map.file.width * map.file.tilewidth then
@@ -762,6 +779,15 @@ function love.draw()
       end
     end
 
+    if scoreTiles[1].active == true
+      and scoreTiles[2].active == true
+      and scoreTiles[3].active == true
+      and scoreTiles[4].active == true
+      and scoreTiles[5].active == true then
+        love.graphics.draw(finalePS, ((map.file.width * map.file.tilewidth)/2)+20, ((map.file.height * map.file.tileheight)/2)-200)
+        portal.an1:draw(portal.sprite, ((map.file.width * map.file.tilewidth)/2)-44, ((map.file.height * map.file.tileheight)/2)-264)
+    end
+
     -- draw our boy
     love.graphics.setColor(256, 256, 256)
     love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
@@ -825,11 +851,11 @@ function love.draw()
       player.bbox:draw('fill')
       luigi.bbox:draw('fill')
       for i = 1, table.getn(collisionTiles) do
-        collisionTiles[i]:draw('fill')
+        --collisionTiles[i]:draw('fill')
       end
       for i = 1, table.getn(scoreTiles) do
         --love.graphics.setColor(10, 10, 10, 150)
-        scoreTiles[i]:draw('fill')
+        --scoreTiles[i]:draw('fill')
         --love.graphics.setFont(compyFont)
         --love.graphics.setColor(0, 256, 0)
         --love.graphics.print(scoreTiles[i].fill, scoreTiles[i].x, scoreTiles[i].y-5)
@@ -882,7 +908,7 @@ function love.draw()
   elseif state == 3 then
     love.graphics.push()
     love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
-      love.graphics.getHeight()/(map.file.height * map.file.tileheight))
+      love.graphics.getWidth()/(map.file.width * map.file.tilewidth))
     drawMap(map, 1, 100)
     love.graphics.translate(0, 0)
     love.graphics.pop()
@@ -899,7 +925,7 @@ function love.draw()
   elseif state == 1 then
     love.graphics.push()
     love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
-      love.graphics.getHeight()/(map.file.height * map.file.tileheight))
+      love.graphics.getWidth()/(map.file.width * map.file.tilewidth))
     drawMap(map, 1, 100)
     love.graphics.translate(0, 0)
     love.graphics.pop()
