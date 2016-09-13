@@ -30,6 +30,9 @@ paused = false
 glow = 0
 glowUp = true
 fadeIn = nil
+endImg = nil
+startCrawl = nil
+textFade = nil
 -- STATES:
 -- 0 - Init
 -- 1 - Intro
@@ -258,7 +261,12 @@ function love.load()
   newFont = love.graphics.newFont('assets/ComingSoon.ttf', 25)
   --compyFont = love.graphics.newFont('assets/256BYTES.TTF', 15)
   signFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 20)
+  signFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 20)
+  bigSignFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 40)
   bigDefault = love.graphics.newFont('assets/ComingSoon.ttf', 40)
+  endImg = love.graphics.newImage('assets/ending.png')
+  startCrawl = love.graphics.getHeight() + 50
+  textFade = 0
   local particle = love.graphics.newImage('assets/particle.png')
   psystem = love.graphics.newParticleSystem(particle, 32)
   psystem:setParticleLifetime(2, 4)
@@ -291,11 +299,15 @@ function love.load()
   peeOrb.x = 100
   peeOrb.y = 100
   peeOrb.sprite = love.graphics.newImage('assets/peeorb.png')
-  peeOrb.grid = anim8.newGrid(26, 26, peeOrb.sprite:getWidth(), peeOrb.sprite:getHeight())
+  peeOrb.grid = anim8.newGrid(52, 52, peeOrb.sprite:getWidth(), peeOrb.sprite:getHeight())
 
   portal.sprite = love.graphics.newImage('assets/Portal.png')
   portal.grid = anim8.newGrid(128, 128, portal.sprite:getWidth(), portal.sprite:getHeight())
   portal.active = false
+  portal.entered = false
+  portal.x = ((map.file.width * map.file.tilewidth)/2)-44
+  portal.y = ((map.file.height * map.file.tileheight)/2)-264
+  portal.bbox = {}
 
   -- set up the player
   player.x = getPlayerStart(map).x
@@ -355,7 +367,7 @@ function love.load()
   chaseObject.radius = 10
 
   -- set init parms
-  pissTankMax = 2000
+  pissTankMax = 1300
   pissStaminaMax = 100
   staminaTimerMax = 10
 
@@ -389,6 +401,11 @@ function love.update(dt)
       rotateAngle = 0
       luigiScore = 0
       score = 0
+      portal.active = false
+      portal.entered = false
+      startCrawl = love.graphics.getHeight() + 50
+      textFade = 0
+      fadeIn = 0
       screen.transformationX = math.floor(-player.x + (love.graphics.getWidth()/2))
       screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
       for i, tile in ipairs(scoreTiles) do
@@ -550,6 +567,11 @@ function love.update(dt)
           portal.active = true
       end
 
+      if portal.active == true then
+        portal.bbox =  collider:rectangle(portal.x, portal.y, 128, 128)
+        portal.bbox.name = 'portal'
+      end
+
       -- update
       if love.graphics.getWidth() < map.file.width * map.file.tilewidth then
         screen.transformationX = math.floor(-player.x + (love.graphics.getWidth()/2))
@@ -614,6 +636,11 @@ function love.update(dt)
         if shape.name ~= 'piss' and shape.name ~= 'luigi' then
           player.y = player.y + delta.y
           player.x = player.x + delta.x
+          if shape.name == 'portal' then
+            portal.entered = true
+            collider:remove(portal.bbox)
+            state = 3
+          end
         end
       end
       player.bbox:moveTo(player.x, player.y)
@@ -792,21 +819,21 @@ function love.draw()
     -- draw the pee orbs
     for i, v in ipairs(scoreTiles) do
       if v.fill == 0 then
-        peeOrb.anEmpty:draw(peeOrb.sprite, v.x-3, v.y)
+        peeOrb.anEmpty:draw(peeOrb.sprite, v.x-8, v.y)
       elseif v.fill > 0 and v.fill < 33 then
-        peeOrb.an25:draw(peeOrb.sprite, v.x-3, v.y)
+        peeOrb.an25:draw(peeOrb.sprite, v.x-8, v.y)
       elseif v.fill >= 33 and v.fill < 66 then
-        peeOrb.an50:draw(peeOrb.sprite, v.x-3, v.y)
+        peeOrb.an50:draw(peeOrb.sprite, v.x-8, v.y)
       elseif v.fill >= 66 and v.fill < 100 then
-        peeOrb.an75:draw(peeOrb.sprite, v.x-3, v.y)
+        peeOrb.an75:draw(peeOrb.sprite, v.x-8, v.y)
       elseif v.fill >= 100 then
-        peeOrb.anFull:draw(peeOrb.sprite, v.x-3, v.y)
+        peeOrb.anFull:draw(peeOrb.sprite, v.x-8, v.y)
       end
     end
 
     if portal.active == true then
-      love.graphics.draw(finalePS, ((map.file.width * map.file.tilewidth)/2)+20, ((map.file.height * map.file.tileheight)/2)-200)
-      portal.an1:draw(portal.sprite, ((map.file.width * map.file.tilewidth)/2)-44, ((map.file.height * map.file.tileheight)/2)-264)
+      love.graphics.draw(finalePS, portal.x+64, portal.y+30)
+      portal.an1:draw(portal.sprite, portal.x, portal.y)
     end
 
     -- draw our boy
@@ -869,8 +896,9 @@ function love.draw()
     -- shade bounding boxes for testing
     if debug == true then
       love.graphics.setColor(10, 10, 10, 150)
-      player.bbox:draw('fill')
-      luigi.bbox:draw('fill')
+      --player.bbox:draw('fill')
+      --luigi.bbox:draw('fill')
+      --portal.bbox:draw('fill')
       for i = 1, table.getn(collisionTiles) do
         --collisionTiles[i]:draw('fill')
       end
@@ -898,7 +926,7 @@ function love.draw()
     love.graphics.setColor(256, 256, 256, 200)
     love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
     love.graphics.setColor(0, 0, 0)
-    love.graphics.print('Piss left...', 18, 12)
+    love.graphics.print('Pee left...', 18, 5)
 
     love.graphics.print('Score: '..score, 10, love.graphics.getHeight() - 50)
 
@@ -936,22 +964,50 @@ function love.draw()
     end
 
   elseif state == 3 then
-    love.graphics.push()
-    love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
-      love.graphics.getWidth()/(map.file.width * map.file.tilewidth))
-    drawMap(map, 1, 100)
-    love.graphics.translate(0, 0)
-    love.graphics.pop()
-    love.graphics.setColor(10, 10, 10, 150)
-    love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
-    love.graphics.setColor(256, 256, 256)
-    gameovertext = love.graphics.newText(newFont, 'Game Over!')
-    love.graphics.rectangle('fill', 100, 175, love.graphics.getWidth()-200, 1)
-    love.graphics.printf('Game over!\r\nYou got '..score..' litres of peep on target\r\nLuigi drank '
-      ..luigiScore..' litres of peep\r\n\r\nYour final score is: \r\n'..(score-luigiScore),
-      0, 200, love.graphics.getWidth(), 'center')
-    love.graphics.rectangle('fill', 100, 430, love.graphics.getWidth()-200, 1)
-    love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
+    if portal.entered == true then
+      love.graphics.setColor(256, 256, 256)
+      love.graphics.draw(endImg, love.graphics.getWidth()/2, love.graphics.getHeight()/2, 0,
+        (love.graphics.getHeight()/endImg:getHeight()), (love.graphics.getHeight()/endImg:getHeight()),
+        --1, 1,
+        endImg:getWidth() / 2, endImg:getHeight() / 2)
+
+      love.graphics.setFont(bigSignFont)
+      love.graphics.setColor(0, 0, 0)
+      love.graphics.printf(endText, 2, startCrawl+2, love.graphics.getWidth(), 'center')
+      love.graphics.setColor(256, 256, 256)
+      love.graphics.printf(endText, 0, startCrawl, love.graphics.getWidth(), 'center')
+      startCrawl = startCrawl - 1
+      if startCrawl < -950 then
+        startCrawl = -950
+        love.graphics.setFont(signFont)
+        love.graphics.setColor(0, 0, 0, textFade)
+        love.graphics.print("Press ESC to quit.\r\nPress R to restart...", 10, love.graphics.getHeight()-60)
+        love.graphics.setColor(256, 256, 256, textFade)
+        love.graphics.print("Press ESC to quit.\r\nPress R to restart...", 12, love.graphics.getHeight()-58)
+        textFade = textFade + 1
+        if textFade > 256 then textFade = 256 end
+      end
+
+
+
+    else
+      love.graphics.push()
+      love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
+        love.graphics.getWidth()/(map.file.width * map.file.tilewidth))
+      drawMap(map, 1, 100)
+      love.graphics.translate(0, 0)
+      love.graphics.pop()
+      love.graphics.setColor(10, 10, 10, 150)
+      love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+      love.graphics.setColor(256, 256, 256)
+      gameovertext = love.graphics.newText(newFont, 'Game Over!')
+      love.graphics.rectangle('fill', 100, 175, love.graphics.getWidth()-200, 1)
+      love.graphics.printf('Game over!\r\nYou got '..score..' litres of peep on target\r\nLuigi drank '
+        ..luigiScore..' litres of peep\r\n\r\nYour final score is: \r\n'..(score-luigiScore),
+        0, 200, love.graphics.getWidth(), 'center')
+      love.graphics.rectangle('fill', 100, 430, love.graphics.getWidth()-200, 1)
+      love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
+    end
   elseif state == 1 then
     love.graphics.push()
     love.graphics.scale(love.graphics.getWidth()/(map.file.width * map.file.tilewidth),
@@ -968,7 +1024,7 @@ function love.draw()
 
   end
   --love.graphics.setColor(256, 256, 256)
-  --text = fadeIn
+  --text = endImg:getHeight()
   --love.graphics.print(text,10, 100)
 
 
