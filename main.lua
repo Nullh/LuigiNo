@@ -265,7 +265,6 @@ function love.load()
   bigSignFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 40)
   bigDefault = love.graphics.newFont('assets/ComingSoon.ttf', 40)
   endImg = love.graphics.newImage('assets/ending.png')
-  startCrawl = love.graphics.getHeight() + 50
   textFade = 0
   local particle = love.graphics.newImage('assets/particle.png')
   psystem = love.graphics.newParticleSystem(particle, 32)
@@ -384,9 +383,15 @@ function love.update(dt)
       if fullscreen == false then
         fullscreen = true
         love.window.setFullscreen(fullscreen)
+        if portal.entered ~= true then
+          startCrawl = love.graphics.getHeight() + 50
+        end
       else
         fullscreen = false
         love.window.setFullscreen(fullscreen)
+        if portal.entered ~= true then
+          startCrawl = love.graphics.getHeight() + 50
+        end
       end
     end
   end
