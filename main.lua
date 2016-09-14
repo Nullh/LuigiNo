@@ -33,6 +33,7 @@ fadeIn = nil
 endImg = nil
 startCrawl = nil
 textFade = nil
+imgFade = nil
 -- STATES:
 -- 0 - Init
 -- 1 - Intro
@@ -96,7 +97,7 @@ function getPlayerStart(map)
   return coords
 end --getPlayerStart()
 
-function createBlockingTiles(map, collider, blockingLayerString)
+function getObjectTiles(map, collider, blockingLayerString)
   local collisionTileTable = {}
   local blockinglayer = nil
   local row = 1
@@ -114,16 +115,16 @@ function createBlockingTiles(map, collider, blockingLayerString)
     if map.file.layers[blockinglayer].objects[i].shape == "rectangle" then
       table.insert(collisionTileTable, collider:rectangle(map.file.layers[blockinglayer].objects[i].x, map.file.layers[blockinglayer].objects[i].y,
           map.file.layers[blockinglayer].objects[i].width, map.file.layers[blockinglayer].objects[i].height))
-      collisionTileTable[table.getn(collisionTileTable)].name = 'blocking'
+      collisionTileTable[table.getn(collisionTileTable)].name = blockingLayerString
     elseif map.file.layers[blockinglayer].objects[i].shape == "ellipse" then
       table.insert(collisionTileTable, collider:circle(map.file.layers[blockinglayer].objects[i].x + (map.file.layers[blockinglayer].objects[i].width/2),
           map.file.layers[blockinglayer].objects[i].y + (map.file.layers[blockinglayer].objects[i].width/2),
           map.file.layers[blockinglayer].objects[i].width/2))
-      collisionTileTable[table.getn(collisionTileTable)].name = 'blocking'
+      collisionTileTable[table.getn(collisionTileTable)].name = blockingLayerString
     end
   end
   return collisionTileTable
-end -- createBlockingTiles()
+end -- getObjectTiles()
 
 function getScoreTiles(map, collider, scoreLayerString, psystem)
   local scoreObjectTable = {}
@@ -266,6 +267,7 @@ function love.load()
   bigDefault = love.graphics.newFont('assets/ComingSoon.ttf', 40)
   endImg = love.graphics.newImage('assets/ending.png')
   textFade = 0
+  imgFade = 0
   local particle = love.graphics.newImage('assets/particle.png')
   psystem = love.graphics.newParticleSystem(particle, 32)
   psystem:setParticleLifetime(2, 4)
@@ -289,7 +291,8 @@ function love.load()
   collider = HC.new(150)
   -- do my awesome map loading!
   map = loadMap("maps/map3.lua", "assets/atlas64.png")
-  collisionTiles = createBlockingTiles(map, collider, 'blocking')
+  collisionTiles = getObjectTiles(map, collider, 'blocking')
+  plyerExcTiles = getObjectTiles(map, collider, 'playerblock')
   scoreTiles = getScoreTiles(map, collider, 'score', psystem)
 
   signpost = love.graphics.newImage('assets/Signpost.png')
@@ -630,7 +633,7 @@ function love.update(dt)
       --update player bounding bbox
 
       for shape, delta in pairs(collider:collisions(luigi.bbox)) do
-        if shape.name ~= 'piss' then
+        if shape.name ~= 'piss' and shape.name ~= 'playerblock' then
           luigi.y = luigi.y + delta.y
           luigi.x = luigi.x + delta.x
         end
@@ -657,7 +660,7 @@ function love.update(dt)
             table.remove(pissStream, i)
             if shape.fill + 1 < 101 then
               shape.fill = shape.fill + 1
-              score = score + 1
+              score = score + 2
             elseif shape.full == false then
               -- pause and show the signpost
               paused = true
@@ -896,7 +899,7 @@ function love.draw()
 
 
     -- draw overlay layer
-    drawMap(map, 4, 4)
+    drawMap(map, 4, 10)
 
     -- shade bounding boxes for testing
     if debug == true then
@@ -971,27 +974,36 @@ function love.draw()
 
   elseif state == 3 then
     if portal.entered == true then
-      love.graphics.setColor(256, 256, 256)
-      love.graphics.draw(endImg, love.graphics.getWidth()/2, love.graphics.getHeight()/2, 0,
-        (love.graphics.getHeight()/endImg:getHeight()), (love.graphics.getHeight()/endImg:getHeight()),
-        --1, 1,
-        endImg:getWidth() / 2, endImg:getHeight() / 2)
+      if imgFade < 256 then
+        love.graphics.setColor(256, 256, 256, imgFade)
+        love.graphics.draw(endImg, love.graphics.getWidth()/2, love.graphics.getHeight()/2, 0,
+          (love.graphics.getHeight()/endImg:getHeight()), (love.graphics.getHeight()/endImg:getHeight()),
+          --1, 1,
+          endImg:getWidth() / 2, endImg:getHeight() / 2)
+          imgFade = imgFade + 1
+      else
+        love.graphics.setColor(256, 256, 256)
+        love.graphics.draw(endImg, love.graphics.getWidth()/2, love.graphics.getHeight()/2, 0,
+          (love.graphics.getHeight()/endImg:getHeight()), (love.graphics.getHeight()/endImg:getHeight()),
+          --1, 1,
+          endImg:getWidth() / 2, endImg:getHeight() / 2)
 
-      love.graphics.setFont(bigSignFont)
-      love.graphics.setColor(0, 0, 0)
-      love.graphics.printf(endText, 2, startCrawl+2, love.graphics.getWidth(), 'center')
-      love.graphics.setColor(256, 256, 256)
-      love.graphics.printf(endText, 0, startCrawl, love.graphics.getWidth(), 'center')
-      startCrawl = startCrawl - 1
-      if startCrawl < -950 then
-        startCrawl = -950
-        love.graphics.setFont(signFont)
-        love.graphics.setColor(0, 0, 0, textFade)
-        love.graphics.print("Press ESC to quit.\r\nPress R to restart...", 10, love.graphics.getHeight()-60)
-        love.graphics.setColor(256, 256, 256, textFade)
-        love.graphics.print("Press ESC to quit.\r\nPress R to restart...", 12, love.graphics.getHeight()-58)
-        textFade = textFade + 1
-        if textFade > 256 then textFade = 256 end
+        love.graphics.setFont(bigSignFont)
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.printf(endText, 2, startCrawl+2, love.graphics.getWidth(), 'center')
+        love.graphics.setColor(256, 256, 256)
+        love.graphics.printf(endText, 0, startCrawl, love.graphics.getWidth(), 'center')
+        startCrawl = startCrawl - 1
+        if startCrawl < -950 then
+          startCrawl = -950
+          love.graphics.setFont(signFont)
+          love.graphics.setColor(0, 0, 0, textFade)
+          love.graphics.print("Press ESC to quit.\r\nPress R to restart...", 10, love.graphics.getHeight()-60)
+          love.graphics.setColor(256, 256, 256, textFade)
+          love.graphics.print("Press ESC to quit.\r\nPress R to restart...", 12, love.graphics.getHeight()-58)
+          textFade = textFade + 1
+          if textFade > 256 then textFade = 256 end
+        end
       end
 
 
