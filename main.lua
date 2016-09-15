@@ -277,8 +277,6 @@ function love.load()
   bigSignFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 40)
   bigDefault = love.graphics.newFont('assets/ComingSoon.ttf', 40)
   endImg = love.graphics.newImage('assets/ending.png')
-  TEsound.playLooping('assets/hiss.mp3', 'hiss', nil, 0.05, 0.8)
-  TEsound.pause('hiss')
   leaves01 = love.sound.newSoundData("assets/leaves01.ogg")
   leaves02 = love.sound.newSoundData("assets/leaves02.ogg")
   walklist = {[1]=leaves01, [2]=leaves02}
@@ -431,6 +429,8 @@ function love.update(dt)
       startCrawl = love.graphics.getHeight() + 50
       textFade = 0
       fadeIn = 0
+      TEsound.playLooping('assets/hiss.mp3', 'hiss', nil, 0.05, 0.8)
+      TEsound.pause('hiss')
       screen.transformationX = math.floor(-player.x + (love.graphics.getWidth()/2))
       screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
       for i, tile in ipairs(scoreTiles) do
@@ -762,6 +762,7 @@ function love.update(dt)
     end
   elseif state == 3 then
     -- end game
+    TEsound.stop('hiss')
     if love.keyboard.isScancodeDown('r') then
       state = 0
     end
