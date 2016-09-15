@@ -3,7 +3,7 @@ local HC = require 'HC'
 local shack = require 'shack'
 require 'TEsound'
 require 'bookEntries'
-debug = true
+debug = false
 fullscreen = false
 newFont = nil
 luigiScore = nil
@@ -441,6 +441,7 @@ function love.update(dt)
       glugAllowed = true
       walkAllowed = true
       TEsound.stop('ending')
+      TEsound.stop('bgm')
       TEsound.playLooping('assets/MSTR_-_MSTR_-_Choro_bavario_Loop.ogg', 'bgm', nil, 0.6)
       state = 1
       player.x = getPlayerStart(map).x
