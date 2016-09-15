@@ -1,6 +1,7 @@
 local anim8 = require 'anim8'
 local HC = require 'HC'
 local shack = require 'shack'
+require 'TEsound'
 require 'bookEntries'
 debug = true
 fullscreen = false
@@ -34,6 +35,8 @@ endImg = nil
 startCrawl = nil
 textFade = nil
 imgFade = nil
+glugAllowed = nil
+walkAllowed = nil
 -- STATES:
 -- 0 - Init
 -- 1 - Intro
@@ -85,6 +88,14 @@ function getTiles(map)
   -- return the table of quads
   return tiles
 end -- getTiles()
+
+function flipGlugAllowed(list)
+  glugAllowed = true
+end
+
+function flipWalkAllowed(list)
+  walkAllowed = true
+end
 
 function getPlayerStart(map)
   local coords = {}
@@ -266,6 +277,11 @@ function love.load()
   bigSignFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 40)
   bigDefault = love.graphics.newFont('assets/ComingSoon.ttf', 40)
   endImg = love.graphics.newImage('assets/ending.png')
+  TEsound.playLooping('assets/hiss.mp3', 'hiss', nil, 0.05, 0.8)
+  TEsound.pause('hiss')
+  leaves01 = love.sound.newSoundData("assets/leaves01.ogg")
+  leaves02 = love.sound.newSoundData("assets/leaves02.ogg")
+  walklist = {[1]=leaves01, [2]=leaves02}
   textFade = 0
   imgFade = 0
   local particle = love.graphics.newImage('assets/particle.png')
@@ -369,7 +385,7 @@ function love.load()
   chaseObject.radius = 10
 
   -- set init parms
-  pissTankMax = 1300
+  pissTankMax = 1400
   pissStaminaMax = 100
   staminaTimerMax = 10
 
@@ -377,6 +393,7 @@ function love.load()
 end --love.load()
 
 function love.update(dt)
+  TEsound.cleanup()
   if love.keyboard.isScancodeDown('escape') then
     love.event.push('quit')
   end
@@ -421,6 +438,10 @@ function love.update(dt)
         tile.full = false
         tile.active = false
       end
+      glugAllowed = true
+      walkAllowed = true
+      TEsound.stop('ending')
+      TEsound.playLooping('assets/MSTR_-_MSTR_-_Choro_bavario_Loop.ogg', 'bgm', nil, 0.6)
       state = 1
       player.x = getPlayerStart(map).x
       player.y = getPlayerStart(map).y
@@ -541,6 +562,13 @@ function love.update(dt)
             end
           end
 
+      if player.moving == true then
+        if walkAllowed == true then
+          local randWalk = love.math.random(1, 2)
+          walkAllowed = false
+          TEsound.play(walklist[randWalk], 'walk', 1, 1, flipWalkAllowed)
+        end
+      end
 
       -- update animations
       player.anIDown:update(dt)
@@ -578,6 +606,9 @@ function love.update(dt)
       if portal.active == true then
         portal.bbox =  collider:rectangle(portal.x, portal.y, 128, 128)
         portal.bbox.name = 'portal'
+        TEsound.stop('bgm', false)
+        TEsound.playLooping('assets/Undead_Rising_Low_Tension_1_.ogg', 'ending', nil, 0.8)
+        TEsound.playLooping('assets/equake6.mp3', 'rumble', nil, 1.5)
       end
 
       -- update
@@ -606,9 +637,11 @@ function love.update(dt)
       -- do we want to stop peeing?
       if pissStamina > 0 and love.mouse.isDown(1) and staminaTimer >= staminaTimerMax then
         pissStamina = pissStamina - (20 * dt)
+        TEsound.pause('hiss')
         if pissStamina <= 0 then staminaTimer = 0 end
         -- REMOVE THIS BEFORE RELEASE!
       elseif love.mouse.isDown(2) and debug == true then
+        TEsound.pause('hiss')
       elseif pissTank > 0 then
           local startX = player.x
           local startY = player.y
@@ -625,6 +658,7 @@ function love.update(dt)
                                     bbox = collider:circle(startX, startY, 5)})
           pissStream[table.getn(pissStream)].bbox.name = 'piss'
           pissTank = pissTank - 1
+          TEsound.resume('hiss')
           pissStamina = pissStamina + (20 * dt)
           if pissStamina > pissStaminaMax then pissStamina = pissStaminaMax end
           if staminaTimer < staminaTimerMax then staminaTimer = staminaTimer + (10 * dt) end
@@ -633,7 +667,7 @@ function love.update(dt)
       --update player bounding bbox
 
       for shape, delta in pairs(collider:collisions(luigi.bbox)) do
-        if shape.name ~= 'piss' and shape.name ~= 'playerblock' then
+        if shape.name ~= 'piss' and shape.name ~= 'playerblock' and shape.name ~= 'portal' then
           luigi.y = luigi.y + delta.y
           luigi.x = luigi.x + delta.x
         end
@@ -647,6 +681,7 @@ function love.update(dt)
           if shape.name == 'portal' then
             portal.entered = true
             collider:remove(portal.bbox)
+            TEsound.stop('rumble', false)
             state = 3
           end
         end
@@ -660,7 +695,12 @@ function love.update(dt)
             table.remove(pissStream, i)
             if shape.fill + 1 < 101 then
               shape.fill = shape.fill + 1
-              score = score + 2
+              score = score + 1
+              if glugAllowed == true then
+                local pitch = 0.5 + (shape.fill/2)/100
+                TEsound.play('assets/glug.mp3', 'glug', 0.8, pitch, flipGlugAllowed)
+                glugAllowed = false
+              end
             elseif shape.full == false then
               -- pause and show the signpost
               paused = true
@@ -933,9 +973,13 @@ function love.draw()
 
     love.graphics.setColor(256, 256, 256, 200)
     love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
+    love.graphics.setColor(256, 256, 256)
+    love.graphics.print('Pee remaining...', 19, 3)
     love.graphics.setColor(0, 0, 0)
-    love.graphics.print('Pee left...', 18, 5)
+    love.graphics.print('Pee remaining...', 18, 2)
 
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.print('Score: '..score, 11, love.graphics.getHeight() - 49)
     love.graphics.setColor(256, 256, 256)
     love.graphics.print('Score: '..score, 10, love.graphics.getHeight() - 50)
 
@@ -1043,6 +1087,7 @@ function love.draw()
   end
   --love.graphics.setColor(256, 256, 256)
   --text = endImg:getHeight()
+  --if walkAllowed then text = 'true' else text = 'false' end
   --love.graphics.print(text,10, 100)
 
 
