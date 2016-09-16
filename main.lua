@@ -1,42 +1,30 @@
 local anim8 = require 'anim8'
 local HC = require 'HC'
 local shack = require 'shack'
+local playerLib = require 'player'
+local peeOrbLib = require 'peeOrb'
+local portalLib = require 'portal'
+local luigiLib = require 'luigi'
+local pissTankLib = require 'pissTank'
 require 'TEsound'
 require 'bookEntries'
-debug = false
-fullscreen = false
-newFont = nil
-luigiScore = nil
-score = nil
+require 'mapLoader'
+require 'mover'
+require 'partSystems'
+debug = true
+text = ''
 player = {}
 pissStream = {}
 chaseObject = {}
-pissTankMax = nil
-pissTank = nil
-pissStamina = nil
-pissStaminaMax = nil
-staminaTimer = nil
-staminaTimerMax = nil
-rotateAngle = nil
 collisionTiles = {}
-scoreTiles = {}
-peeOrb = {}
+peeOrbs = {}
 portal = {}
 luigi = {}
 map = {}
 screen = {}
+--peeOrb = {}
 state = 0
-signpost = nil
-paused = false
-glow = 0
 glowUp = true
-fadeIn = nil
-endImg = nil
-startCrawl = nil
-textFade = nil
-imgFade = nil
-glugAllowed = nil
-walkAllowed = nil
 -- STATES:
 -- 0 - Init
 -- 1 - Intro
@@ -44,50 +32,8 @@ walkAllowed = nil
 -- 3 - End game
 
 -- troubleshooting text
-text = ''
-rotateTargetX = 0
-rotateTargetY = 0
+--text = ''
 
--- Return the quad for a tileid
-function getQuad(map, tileId)
-  -- Get the x index of the tile
-  tileX = (((tileId -1) % (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth)) * map.tilesets[1].tilewidth)
-  -- get the y index of the tile
-  tileY = ((math.floor((tileId - 1) / (map.tilesets[1].imagewidth/map.tilesets[1].tilewidth))) * map.tilesets[1].tilewidth)
-  return love.graphics.newQuad(tileX, tileY, map.tilesets[1].tilewidth, map.tilesets[1].tileheight, map.tilesets[1].imagewidth, map.tilesets[1].imageheight)
-end -- getQuad()
-
--- fill a table with the tile quads in use
-function getTiles(map)
-  local ids = {} -- list of all tileIds
-  local tileids = {} -- list of non-duplicate tileIds
-  local tiles = {} -- table of quads for each tileId
-  local hash = {} -- used for de-dup
-  -- union all map data across layers
-  local n = 1
-  for i=1, table.getn(map.layers) do
-    if map.layers[i].type == "tilelayer" then
-      for v in pairs(map.layers[i].data) do
-        ids[n] = map.layers[i].data[v]
-        n = n+1
-      end
-    end
-  end
-  -- get unique tileIDs
-  for _,v in ipairs(ids) do
-    if (not hash[v]) then
-      tileids[#tileids+1] = v
-      hash[v] = true
-    end
-  end
-  -- create the table containing the quads
-  for i=1, table.getn(tileids) do
-    r = tileids[i]
-    tiles[r] = getQuad(map, r)
-  end
-  -- return the table of quads
-  return tiles
-end -- getTiles()
 
 function flipGlugAllowed(list)
   glugAllowed = true
@@ -96,178 +42,6 @@ end
 function flipWalkAllowed(list)
   walkAllowed = true
 end
-
-function getPlayerStart(map)
-  local coords = {}
-  for i=1, table.getn(map.file.layers) do
-    if map.file.layers[i].name == "playerstart" then
-      coords.x = map.file.layers[i].objects[1].x
-      coords.y = map.file.layers[i].objects[1].y
-    end
-  end
-  return coords
-end --getPlayerStart()
-
-function getObjectTiles(map, collider, blockingLayerString)
-  local collisionTileTable = {}
-  local blockinglayer = nil
-  local row = 1
-  local column = 1
-
-  for i=1, table.getn(map.file.layers) do
-    if map.file.layers[i].name == blockingLayerString then
-      -- find the blocking layer
-      blockinglayer = i
-    end
-  end
-
-  -- draw each blocking object
-  for i=1, table.getn(map.file.layers[blockinglayer].objects) do
-    if map.file.layers[blockinglayer].objects[i].shape == "rectangle" then
-      table.insert(collisionTileTable, collider:rectangle(map.file.layers[blockinglayer].objects[i].x, map.file.layers[blockinglayer].objects[i].y,
-          map.file.layers[blockinglayer].objects[i].width, map.file.layers[blockinglayer].objects[i].height))
-      collisionTileTable[table.getn(collisionTileTable)].name = blockingLayerString
-    elseif map.file.layers[blockinglayer].objects[i].shape == "ellipse" then
-      table.insert(collisionTileTable, collider:circle(map.file.layers[blockinglayer].objects[i].x + (map.file.layers[blockinglayer].objects[i].width/2),
-          map.file.layers[blockinglayer].objects[i].y + (map.file.layers[blockinglayer].objects[i].width/2),
-          map.file.layers[blockinglayer].objects[i].width/2))
-      collisionTileTable[table.getn(collisionTileTable)].name = blockingLayerString
-    end
-  end
-  return collisionTileTable
-end -- getObjectTiles()
-
-function getScoreTiles(map, collider, scoreLayerString, psystem)
-  local scoreObjectTable = {}
-  local scoreLayer = nil
-  for i=1, table.getn(map.file.layers) do
-    if map.file.layers[i].name == scoreLayerString then
-      -- find the blocking layer
-      scoreLayer = i
-    end
-  end
-
-  -- create each blocking object
-  for i=1, table.getn(map.file.layers[scoreLayer].objects) do
-    if map.file.layers[scoreLayer].objects[i].shape == "rectangle" then
-      table.insert(scoreObjectTable, collider:rectangle(map.file.layers[scoreLayer].objects[i].x, map.file.layers[scoreLayer].objects[i].y,
-          map.file.layers[scoreLayer].objects[i].width, map.file.layers[scoreLayer].objects[i].height))
-      scoreObjectTable[table.getn(scoreObjectTable)].name = 'score'
-      scoreObjectTable[table.getn(scoreObjectTable)].full = false
-      scoreObjectTable[table.getn(scoreObjectTable)].fill = 0
-      scoreObjectTable[table.getn(scoreObjectTable)].x = map.file.layers[scoreLayer].objects[i].x
-      scoreObjectTable[table.getn(scoreObjectTable)].y = map.file.layers[scoreLayer].objects[i].y
-      scoreObjectTable[table.getn(scoreObjectTable)].width = map.file.layers[scoreLayer].objects[i].width
-      scoreObjectTable[table.getn(scoreObjectTable)].height = map.file.layers[scoreLayer].objects[i].height
-      scoreObjectTable[table.getn(scoreObjectTable)].number = map.file.layers[scoreLayer].objects[i].name
-      scoreObjectTable[table.getn(scoreObjectTable)].particles = psystem:clone()
-    elseif map.file.layers[scoreLayer].objects[i].shape == "ellipse" then
-      table.insert(scoreObjectTable, collider:circle(map.file.layers[scoreLayer].objects[i].x + (map.file.layers[scoreLayer].objects[i].width/2),
-          map.file.layers[scoreLayer].objects[i].y + (map.file.layers[scoreLayer].objects[i].width/2),
-          map.file.layers[scoreLayer].objects[i].width/2))
-      scoreObjectTable[table.getn(scoreObjectTable)].name = 'score'
-      scoreObjectTable[table.getn(scoreObjectTable)].full = false
-      scoreObjectTable[table.getn(scoreObjectTable)].fill = 0
-      scoreObjectTable[table.getn(scoreObjectTable)].x = map.file.layers[scoreLayer].objects[i].x
-      scoreObjectTable[table.getn(scoreObjectTable)].y = map.file.layers[scoreLayer].objects[i].y
-      scoreObjectTable[table.getn(scoreObjectTable)].width = map.file.layers[scoreLayer].objects[i].width
-      scoreObjectTable[table.getn(scoreObjectTable)].height = map.file.layers[scoreLayer].objects[i].height
-      scoreObjectTable[table.getn(scoreObjectTable)].number = map.file.layers[scoreLayer].objects[i].name
-      scoreObjectTable[table.getn(scoreObjectTable)].particles = psystem:clone()
-    end
-  end
-  -- sort the order of the array based on the object name (which is a string!)
-  local sortFunc = function(a, b) return a.number < b.number end
-  table.sort(scoreObjectTable, sortFunc)
-  return scoreObjectTable
-end -- getScoreTiles()
-
-function drawMap(map, minLayer, maxLayer)
-  -- iterate layers
-  if table.getn(map.file.layers) < maxLayer then
-    maxLayer = table.getn(map.file.layers)
-  end
-  if minLayer <= 0 then
-    minLayer = 1
-  end
-  for n = minLayer, maxLayer do
-    if map.file.layers[n].type == "tilelayer" then
-        local row = 1
-        local column = 1
-        -- for each data elemnt in the layer's table
-        for l = 1, table.getn(map.file.layers[n].data) do
-          -- goto the next row if we've passed the screen width and reset columns
-          if column > map.file.layers[n].width then
-            column = 1
-            row = row + 1
-          end
-          -- draw the tile as long as it's not 0 (empty)
-          if map.file.layers[n].data[l] ~= 0 then
-            love.graphics.draw(map.atlas, map.tiles[map.file.layers[n].data[l]],
-              (column * map.file.tileheight) - map.file.tileheight, (row * map.file.tilewidth) - map.file.tilewidth)
-          end
-          -- move to the next column
-          column = column + 1
-        end
-      end
-    end
-end -- drawMap()
-
-function loadMap(path, atlaspath)
-  -- Creates a map table with the following values:
-  --  .file - a handle to the lua map file
-  --  .atlas - the image to use asthe tilemap
-  --  .tiles - a table indexed for each tileid
-  -- load the map file
-  map.file = love.filesystem.load(path)()
-  -- load the atlas
-  -- TODO: make this load each atlas per layer
-  map.atlas = love.graphics.newImage(atlaspath)
-  -- load the tiles for the map
-  map.tiles = getTiles(map.file)
-  --return the map table
-  return map
-end --loadMap()
-
--- Returns the distance between two points.
-function math.dist(x1,y1, x2,y2)
-  return ((x2-x1)^2+(y2-y1)^2)^0.5
-end -- math.dist()
-
--- angle in degrees
-function findRotation(x1,y1,x2,y2)
-  local t = -math.deg(math.atan2(x2-x1,y2-y1))
-  if t < 0 then t = t + 360 end;
-  return t - 180;
-end -- findRotation()
-
-function checkCircularCollision(ax, ay, bx, by, ar, br)
-	local dx = bx - ax
-	local dy = by - ay
-	local dist = math.sqrt(dx * dx + dy * dy)
-	return dist < ar + br
-end -- checkCircularCollision()
-
-function moveTowards(object, dt, toObject)
-  if toObject.name == 'player' then
-    -- walk around the player
-    --rotateTargetX = toObject.x + (100 * math.cos(math.rad(rotateAngle)))
-    --rotateTargetY = toObject.y + (100 * math.sin(math.rad(rotateAngle)))
-
-    --local angle = math.atan2((rotateTargetY - object.y), (rotateTargetX - object.x))
-    local angle = math.atan2((toObject.y - object.y), (toObject.x - object.x))
-    local dx = (math.cos(angle) * object.speed) * dt
-    local dy = (math.sin(angle) * object.speed) * dt
-      object.x = object.x + dx
-      object.y = object.y + dy
-  else
-    local angle = math.atan2((toObject.y - object.y), (toObject.x - object.x))
-    local dx = (math.cos(angle) * object.speed) * dt
-    local dy = (math.sin(angle) * object.speed) * dt
-      object.x = object.x + dx
-      object.y = object.y + dy
-    end
-end -- moveTowards()
 
 function love.load()
   newFont = love.graphics.newFont('assets/ComingSoon.ttf', 25)
@@ -280,115 +54,37 @@ function love.load()
   leaves01 = love.sound.newSoundData("assets/leaves01.ogg")
   leaves02 = love.sound.newSoundData("assets/leaves02.ogg")
   walklist = {[1]=leaves01, [2]=leaves02}
-  textFade = 0
-  imgFade = 0
-  local particle = love.graphics.newImage('assets/particle.png')
-  psystem = love.graphics.newParticleSystem(particle, 32)
-  psystem:setParticleLifetime(2, 4)
-	psystem:setEmissionRate(5)
-	psystem:setSizeVariation(1)
-	psystem:setLinearAcceleration(5, -8, -5, -40)
-	psystem:setColors(255, 255, 255, 255, 255, 255, 255, 0) -- Fade to transparency.
-  psystem:stop()
-
-  -- set up the big particle system
-  finalePS = love.graphics.newParticleSystem(particle, 200)
-  finalePS:setParticleLifetime(3, 5) -- Particles live at least 2s and at most 5s.
-  finalePS:setEmissionRate(40)
-  finalePS:setSizeVariation(1)
-  finalePS:setLinearAcceleration(40, -10, -40, -40)
-  finalePS:setColors(255, 255, 255, 255, 255, 255, 255, 255,255,255,255,0) -- Fade to transparency.
-  finalePS:start()
-
   shack:setDimensions(love.graphics.getWidth(), love.graphics.getHeight())
-
   collider = HC.new(150)
   -- do my awesome map loading!
   map = loadMap("maps/map3.lua", "assets/atlas64.png")
-  collisionTiles = getObjectTiles(map, collider, 'blocking')
-  plyerExcTiles = getObjectTiles(map, collider, 'playerblock')
-  scoreTiles = getScoreTiles(map, collider, 'score', psystem)
+  collisionTiles = getMapObjectLayer(map, collider, 'blocking')
+  plyerExcTiles = getMapObjectLayer(map, collider, 'playerblock')
+
+  for i, object in ipairs(getScoreObjects(map, collider, 'score')) do
+    table.insert(peeOrbs, peeOrbLib.newPeeOrb(object.x, object.y, object.width, object.height, object.number))
+    --text = text.."\r\n"..object.x..','..object.y
+  end
+
 
   signpost = love.graphics.newImage('assets/Signpost.png')
-  fadeIn = 0
+  player = playerLib.newPlayer()
+  portal = portalLib.newPortal()
+  luigi = luigiLib.new(player.x + math.random(-200, 200), player.y + math.random(-200, 200))
+  pissTank = pissTankLib.newPissTank()
 
-  peeOrb.x = 100
-  peeOrb.y = 100
-  peeOrb.sprite = love.graphics.newImage('assets/peeorb.png')
-  peeOrb.grid = anim8.newGrid(52, 52, peeOrb.sprite:getWidth(), peeOrb.sprite:getHeight())
-
-  portal.sprite = love.graphics.newImage('assets/Portal.png')
-  portal.grid = anim8.newGrid(128, 128, portal.sprite:getWidth(), portal.sprite:getHeight())
-  portal.active = false
-  portal.entered = false
-  portal.x = ((map.file.width * map.file.tilewidth)/2)-44
-  portal.y = ((map.file.height * map.file.tileheight)/2)-264
-  portal.bbox = {}
-
-  -- set up the player
-  player.x = getPlayerStart(map).x
-  player.y = getPlayerStart(map).y
-  player.name = 'player'
-  player.speed, player.radius = 150, 80
-  player.peespeed, player.deceleration = 200, 25
-  player.sprite = love.graphics.newImage('assets/penny2.png')
-  player.arrow = love.graphics.newImage('assets/arrow.png')
-  player.grid = anim8.newGrid(64, 64, player.sprite:getWidth(), player.sprite:getHeight())
-  player.bbox = collider:circle(player.x - (player.grid.frameWidth/2), player.y - (player.grid.frameHeight/2),
-    player.grid.frameWidth * 0.5)
-  player.bbox.name = 'player'
-  player.direction = 0
-  -- Direction key
-  --  3  4  5
-  --  2  *  6
-  --  1  0  7
-  --player animations
-  player.anIDown = anim8.newAnimation(player.grid('1-4', 1), 0.2)
-  player.anMDown = anim8.newAnimation(player.grid('5-8', 3), 0.2)
-  player.anIDownLeft = anim8.newAnimation(player.grid('1-4', 3), 0.2)
-  player.anMDownLeft = anim8.newAnimation(player.grid('5-8', 5), 0.2)
-  player.anILeft = anim8.newAnimation(player.grid('1-4', 2), 0.2)
-  player.anMLeft = anim8.newAnimation(player.grid('5-8', 4), 0.2)
-  player.anIUpLeft = anim8.newAnimation(player.grid('5-8', 2), 0.2)
-  player.anMUpLeft = anim8.newAnimation(player.grid('1-4', 5), 0.2)
-  player.anIUp = anim8.newAnimation(player.grid('5-8', 1), 0.2)
-  player.anMUp = anim8.newAnimation(player.grid('1-4', 4), 0.2)
-  player.anIUpRight = anim8.newAnimation(player.grid('5-8', 2), 0.2):flipH()
-  player.anMUpRight = anim8.newAnimation(player.grid('1-4', 5), 0.2):flipH()
-  player.anIRight = anim8.newAnimation(player.grid('1-4', 2), 0.2):flipH()
-  player.anMRight = anim8.newAnimation(player.grid('5-8', 4), 0.2):flipH()
-  player.anIDownRight = anim8.newAnimation(player.grid('1-4', 3), 0.2):flipH()
-  player.anMDownRight = anim8.newAnimation(player.grid('5-8', 5), 0.2):flipH()
-
-  -- crate the pee orb animations
-  peeOrb.anEmpty = anim8.newAnimation(peeOrb.grid(1, 1), 0.2)
-  peeOrb.anFull = anim8.newAnimation(peeOrb.grid(2, 1), 0.2)
-  peeOrb.an25 = anim8.newAnimation(peeOrb.grid('2-5', 2, '5-2', 2), 0.2)
-  peeOrb.an50 = anim8.newAnimation(peeOrb.grid('2-5', 3, '5-2', 3), 0.2)
-  peeOrb.an75 = anim8.newAnimation(peeOrb.grid('2-5', 4, '5-2', 4), 0.2)
-
-  portal.an1 = anim8.newAnimation(portal.grid('1-3', 1, '1-3', 2, '1-3', 3, '1-3', 4), 0.2)
-
-  pissBar = love.graphics.newImage('assets/yellowblock.png')
-  -- set up our boy
-  luigi.x , luigi.y, luigi.speed, luigi.radius = 0, 0, 300, 10
-  luigi.sprite = love.graphics.newImage('assets/luigi.png')
-  luigi.bbox = collider:circle(luigi.x - (luigi.sprite:getWidth()/2),
-    luigi.y - (luigi.sprite:getHeight()/2), luigi.sprite:getWidth() /3)
-  -- set up piss
-  luigi.bbox.name = 'luigi'
   chaseObject.dist = 10000000
   chaseObject.x = player.x
   chaseObject.y = player.y
   chaseObject.radius = 10
 
-  -- set init parms
-  pissTankMax = 1400
-  pissStaminaMax = 100
-  staminaTimerMax = 10
+
 
   love.mouse.setGrabbed(true)
 end --love.load()
+
+
+
 
 function love.update(dt)
   TEsound.cleanup()
@@ -418,25 +114,25 @@ function love.update(dt)
   -- initialising
   if state == 0 then
       -- set init parms
-      pissTank = pissTankMax
-      pissStamina = pissStaminaMax
-      staminaTimer = staminaTimerMax
+      pissTank.resetTank()
+      pissTank.resetStamina()
+      pissTank.resetStaminaTimer()
       rotateAngle = 0
-      luigiScore = 0
-      score = 0
+      luigi.resetScore()
+      player.resetScore()
       portal.active = false
       portal.entered = false
       startCrawl = love.graphics.getHeight() + 50
       textFade = 0
-      fadeIn = 0
+      imgFade = 0
+      glow = 0
+      glowUp = true
       TEsound.playLooping('assets/hiss.mp3', 'hiss', nil, 0.05, 0.8)
       TEsound.pause('hiss')
       screen.transformationX = math.floor(-player.x + (love.graphics.getWidth()/2))
       screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
-      for i, tile in ipairs(scoreTiles) do
-        tile.fill = 0
-        tile.full = false
-        tile.active = false
+      for i, peeOrb in ipairs(peeOrbs) do
+        peeOrb:reset()
       end
       glugAllowed = true
       walkAllowed = true
@@ -444,12 +140,9 @@ function love.update(dt)
       TEsound.stop('bgm')
       TEsound.playLooping('assets/MSTR_-_MSTR_-_Choro_bavario_Loop.ogg', 'bgm', nil, 0.6)
       state = 1
-      player.x = getPlayerStart(map).x
-      player.y = getPlayerStart(map).y
-      player.speed, player.radius = 150, 80
-      player.peespeed, player.deceleration = 200, 25
+      player.goHome()
       math.randomseed(os.time())
-      luigi.x, luigi.y = player.x + math.random(-200, 200), player.y + math.random(-200, 200)
+      --luigi:getX(), luigi:getY() = player.x + math.random(-200, 200), player.y + math.random(-200, 200)
       pissStream = {}
   -- Intro
   elseif state == 1 then
@@ -474,9 +167,6 @@ function love.update(dt)
       end
     end
 
-    shack:update(dt)
-    shack:setShake(20)
-
     -- increment the glow value up and down
     if glowUp == true then
       glow = glow + 2
@@ -493,13 +183,14 @@ function love.update(dt)
 
     if paused == false then
       -- play the game
-      for i, v in ipairs(scoreTiles) do
+      for i, v in ipairs(peeOrbs) do
         if v.active == true then
           v.particles:update(dt)
         end
       end
 
-      finalePS:update(dt)
+      shack:update(dt)
+      shack:setShake(20)
 
       player.moving = false
       rotateAngle = rotateAngle + 1
@@ -507,60 +198,24 @@ function love.update(dt)
           -- NEW! 8 direction movement
           if love.keyboard.isScancodeDown('left', 'a') then
             if love.keyboard.isScancodeDown('up', 'w') then
-              if player.x > (player.grid.frameWidth/2) and player.y > (player.grid.frameHeight/2) then
-                player.x = player.x - (player.speed * dt)
-                player.y = player.y - (player.speed * dt)
-                player.direction = 3
-                player.moving = true
-              end
+              player.moveLU(dt)
             elseif love.keyboard.isScancodeDown('down', 's') then
-              if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) and player.x > (player.grid.frameWidth/2) then
-                player.x = player.x - (player.speed * dt)
-                player.y = player.y + (player.speed * dt)
-                player.direction = 1
-                player.moving = true
-              end
+              player.moveLD(dt)
             else
-              if player.x > (player.grid.frameWidth/2) then
-                player.x = player.x - (player.speed * dt)
-                player.direction = 2
-                player.moving = true
-              end
+              player.moveL(dt)
             end
           elseif love.keyboard.isScancodeDown('right', 'd') then
             if love.keyboard.isScancodeDown('up', 'w') then
-              if player.y > (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
-                player.x = player.x + (player.speed * dt)
-                player.y = player.y - (player.speed * dt)
-                player.direction = 5
-                player.moving = true
-              end
+              player.moveRU(dt)
             elseif love.keyboard.isScancodeDown('down', 's') then
-              if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) and player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
-                player.x = player.x + (player.speed * dt)
-                player.y = player.y + (player.speed * dt)
-                player.direction = 7
-                player.moving = true
-              end
+              player.moveRD(dt)
             else
-              if player.x < (map.file.width * map.file.tilewidth) - (player.grid.frameWidth/2) then
-                player.x = player.x + (player.speed * dt)
-                player.direction = 6
-                player.moving = true
-              end
+              player.moveR(dt)
             end
           elseif love.keyboard.isScancodeDown('up', 'w') then
-              if player.y > (player.grid.frameHeight/2) then
-                player.y = player.y - (player.speed * dt)
-                player.direction = 4
-                player.moving = true
-              end
+            player.moveU(dt)
           elseif love.keyboard.isScancodeDown('down', 's') then
-            if player.y < (map.file.height * map.file.tileheight) - (player.grid.frameHeight/2) then
-              player.y = player.y + (player.speed * dt)
-              player.direction = 0
-              player.moving = true
-            end
+            player.moveD(dt)
           end
 
       if player.moving == true then
@@ -571,36 +226,17 @@ function love.update(dt)
         end
       end
 
-      -- update animations
-      player.anIDown:update(dt)
-      player.anMDown:update(dt)
-      player.anIDownLeft:update(dt)
-      player.anMDownLeft:update(dt)
-      player.anILeft:update(dt)
-      player.anMLeft:update(dt)
-      player.anIUpLeft:update(dt)
-      player.anMUpLeft:update(dt)
-      player.anIUp:update(dt)
-      player.anMUp:update(dt)
-      player.anIUpRight:update(dt)
-      player.anMUpRight:update(dt)
-      player.anIRight:update(dt)
-      player.anMRight:update(dt)
-      player.anIDownRight:update(dt)
-      player.anMDownRight:update(dt)
+      player.updateAnimations(dt)
+      for i, peeOrb in ipairs(peeOrbs) do
+        peeOrb:updateAnimations(dt)
+      end
+      portal.updateAnimations(dt)
 
-      -- update the pee orbs
-      peeOrb.an25:update(dt)
-      peeOrb.an50:update(dt)
-      peeOrb.an75:update(dt)
-
-      portal.an1:update(dt)
-
-      if scoreTiles[1].active == true
-        and scoreTiles[2].active == true
-        and scoreTiles[3].active == true
-        and scoreTiles[4].active == true
-        and scoreTiles[5].active == true then
+      if peeOrbs[1].active == true
+        and peeOrbs[2].active == true
+        and peeOrbs[3].active == true
+        and peeOrbs[4].active == true
+        and peeOrbs[5].active == true then
           portal.active = true
       end
 
@@ -636,14 +272,12 @@ function love.update(dt)
       end
 
       -- do we want to stop peeing?
-      if pissStamina > 0 and love.mouse.isDown(1) and staminaTimer >= staminaTimerMax then
-        pissStamina = pissStamina - (20 * dt)
+      if pissTank.getStamina() > 0 and love.mouse.isDown(1) and pissTank.hasStamina() then
+        pissTank.decrementStamina(dt)
         TEsound.pause('hiss')
-        if pissStamina <= 0 then staminaTimer = 0 end
-        -- REMOVE THIS BEFORE RELEASE!
       elseif love.mouse.isDown(2) and debug == true then
         TEsound.pause('hiss')
-      elseif pissTank > 0 then
+      elseif pissTank.getFill() > 0 then
           local startX = player.x
           local startY = player.y
           local mouseX = love.mouse.getX() - screen.transformationX
@@ -658,22 +292,18 @@ function love.update(dt)
                                     radius = 0,
                                     bbox = collider:circle(startX, startY, 5)})
           pissStream[table.getn(pissStream)].bbox.name = 'piss'
-          pissTank = pissTank - 1
+          pissTank.decrementFill()
           TEsound.resume('hiss')
-          pissStamina = pissStamina + (20 * dt)
-          if pissStamina > pissStaminaMax then pissStamina = pissStaminaMax end
-          if staminaTimer < staminaTimerMax then staminaTimer = staminaTimer + (10 * dt) end
+          pissTank.incrementStamina(dt)
       end
 
       --update player bounding bbox
 
-      for shape, delta in pairs(collider:collisions(luigi.bbox)) do
+      for shape, delta in pairs(collider:collisions(luigi.getBbox())) do
         if shape.name ~= 'piss' and shape.name ~= 'playerblock' and shape.name ~= 'portal' then
-          luigi.y = luigi.y + delta.y
-          luigi.x = luigi.x + delta.x
+          luigi:moveTo(luigi:getX() + delta.x, luigi:getY() + delta.y)
         end
       end
-      luigi.bbox:moveTo(luigi.x, luigi.y)
 
       for shape, delta in pairs(collider:collisions(player.bbox)) do
         if shape.name ~= 'piss' and shape.name ~= 'luigi' then
@@ -696,7 +326,7 @@ function love.update(dt)
             table.remove(pissStream, i)
             if shape.fill + 1 < 101 then
               shape.fill = shape.fill + 1
-              score = score + 1
+              player.incrementScore()
               if glugAllowed == true then
                 local pitch = 0.5 + (shape.fill/2)/100
                 TEsound.play('assets/glug.mp3', 'glug', 0.8, pitch, flipGlugAllowed)
@@ -717,7 +347,7 @@ function love.update(dt)
           elseif shape.name == 'luigi' then
             collider:remove(v.bbox)
             table.remove(pissStream, i)
-            luigiScore = luigiScore + 1
+            luigi:incrementScore()
           end
         end
       end
@@ -732,7 +362,7 @@ function love.update(dt)
       chaseObject.dist = 10000000
       if next(pissStream) ~= nil then
         for i, v in ipairs(pissStream) do
-          local sd = math.dist(luigi.x, luigi.y, v.x, v.y)
+          local sd = math.dist(luigi:getX(), luigi:getY(), v.x, v.y)
           if sd < chaseObject.dist then
               chaseObject.dist = sd
               chaseObject.x = v.x
@@ -749,10 +379,10 @@ function love.update(dt)
           chaseObject.name = 'player'
       end
       -- get our boy movin'
-      moveTowards(luigi, dt, chaseObject)
+      luigi:moveTowards(dt, chaseObject.x, chaseObject.y)
 
       -- end the game if we're out of piss
-      if pissTank <= 0 and table.getn(pissStream) == 0 then
+      if pissTank.getFill() <= 0 and table.getn(pissStream) == 0 then
         state = 3
       end
     else
@@ -793,64 +423,64 @@ function love.draw()
     love.graphics.setColor(256, 256, 256)
 
     -- draw the pentagram lines
-    if scoreTiles[1].active == true then
-      if scoreTiles[4].active == true then
+    if peeOrbs[1].active == true then
+      if peeOrbs[4].active == true then
         love.graphics.setLineWidth(6)
         love.graphics.setColor(237, 133, 67, (glow/4)*3)
-        love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
-          scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
+        love.graphics.line(peeOrbs[1].x+(peeOrbs[1].width/2), peeOrbs[1].y+(peeOrbs[1].height/2),
+          peeOrbs[4].x+(peeOrbs[4].width/2), peeOrbs[4].y+(peeOrbs[4].height/2))
         love.graphics.setLineWidth(2)
         love.graphics.setColor(200, 0, 0, glow)
-        love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
-          scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
+        love.graphics.line(peeOrbs[1].x+(peeOrbs[1].width/2), peeOrbs[1].y+(peeOrbs[1].height/2),
+          peeOrbs[4].x+(peeOrbs[4].width/2), peeOrbs[4].y+(peeOrbs[4].height/2))
       end
-      if scoreTiles[3].active == true then
+      if peeOrbs[3].active == true then
         love.graphics.setLineWidth(6)
         love.graphics.setColor(237, 133, 67, (glow/4)*3)
-        love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
-          scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2))
+        love.graphics.line(peeOrbs[1].x+(peeOrbs[1].width/2), peeOrbs[1].y+(peeOrbs[1].height/2),
+          peeOrbs[3].x+(peeOrbs[3].width/2), peeOrbs[3].y+(peeOrbs[3].height/2))
         love.graphics.setLineWidth(2)
         love.graphics.setColor(200, 0, 0, glow)
-        love.graphics.line(scoreTiles[1].x+(scoreTiles[1].width/2), scoreTiles[1].y+(scoreTiles[1].height/2),
-          scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2))
-      end
-    end
-    if scoreTiles[2].active == true then
-      if scoreTiles[4].active == true then
-        love.graphics.setLineWidth(6)
-        love.graphics.setColor(237, 133, 67, (glow/4)*3)
-        love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
-          scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
-        love.graphics.setLineWidth(2)
-        love.graphics.setColor(200, 0, 0, glow)
-        love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
-          scoreTiles[4].x+(scoreTiles[4].width/2), scoreTiles[4].y+(scoreTiles[4].height/2))
-      end
-      if scoreTiles[5].active == true then
-        love.graphics.setLineWidth(6)
-        love.graphics.setColor(237, 133, 67, (glow/4)*3)
-        love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
-          scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
-        love.graphics.setLineWidth(2)
-        love.graphics.setColor(200, 0, 0, glow)
-        love.graphics.line(scoreTiles[2].x+(scoreTiles[2].width/2), scoreTiles[2].y+(scoreTiles[2].height/2),
-          scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
+        love.graphics.line(peeOrbs[1].x+(peeOrbs[1].width/2), peeOrbs[1].y+(peeOrbs[1].height/2),
+          peeOrbs[3].x+(peeOrbs[3].width/2), peeOrbs[3].y+(peeOrbs[3].height/2))
       end
     end
-    if scoreTiles[3].active == true then
-      if scoreTiles[5].active == true then
+    if peeOrbs[2].active == true then
+      if peeOrbs[4].active == true then
         love.graphics.setLineWidth(6)
         love.graphics.setColor(237, 133, 67, (glow/4)*3)
-        love.graphics.line(scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2),
-          scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
+        love.graphics.line(peeOrbs[2].x+(peeOrbs[2].width/2), peeOrbs[2].y+(peeOrbs[2].height/2),
+          peeOrbs[4].x+(peeOrbs[4].width/2), peeOrbs[4].y+(peeOrbs[4].height/2))
         love.graphics.setLineWidth(2)
         love.graphics.setColor(200, 0, 0, glow)
-        love.graphics.line(scoreTiles[3].x+(scoreTiles[3].width/2), scoreTiles[3].y+(scoreTiles[3].height/2),
-          scoreTiles[5].x+(scoreTiles[5].width/2), scoreTiles[5].y+(scoreTiles[5].height/2))
+        love.graphics.line(peeOrbs[2].x+(peeOrbs[2].width/2), peeOrbs[2].y+(peeOrbs[2].height/2),
+          peeOrbs[4].x+(peeOrbs[4].width/2), peeOrbs[4].y+(peeOrbs[4].height/2))
+      end
+      if peeOrbs[5].active == true then
+        love.graphics.setLineWidth(6)
+        love.graphics.setColor(237, 133, 67, (glow/4)*3)
+        love.graphics.line(peeOrbs[2].x+(peeOrbs[2].width/2), peeOrbs[2].y+(peeOrbs[2].height/2),
+          peeOrbs[5].x+(peeOrbs[5].width/2), peeOrbs[5].y+(peeOrbs[5].height/2))
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(200, 0, 0, glow)
+        love.graphics.line(peeOrbs[2].x+(peeOrbs[2].width/2), peeOrbs[2].y+(peeOrbs[2].height/2),
+          peeOrbs[5].x+(peeOrbs[5].width/2), peeOrbs[5].y+(peeOrbs[5].height/2))
+      end
+    end
+    if peeOrbs[3].active == true then
+      if peeOrbs[5].active == true then
+        love.graphics.setLineWidth(6)
+        love.graphics.setColor(237, 133, 67, (glow/4)*3)
+        love.graphics.line(peeOrbs[3].x+(peeOrbs[3].width/2), peeOrbs[3].y+(peeOrbs[3].height/2),
+          peeOrbs[5].x+(peeOrbs[5].width/2), peeOrbs[5].y+(peeOrbs[5].height/2))
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(200, 0, 0, glow)
+        love.graphics.line(peeOrbs[3].x+(peeOrbs[3].width/2), peeOrbs[3].y+(peeOrbs[3].height/2),
+          peeOrbs[5].x+(peeOrbs[5].width/2), peeOrbs[5].y+(peeOrbs[5].height/2))
       end
     end
 
-    for i, v in ipairs(scoreTiles) do
+    for i, v in ipairs(peeOrbs) do
       if v.active == true then
         love.graphics.setColor(200, 0, 0, glow/3.5)
         love.graphics.circle('fill', v.x+(v.width/2),
@@ -861,137 +491,29 @@ function love.draw()
     love.graphics.setColor(256, 256, 256)
 
 
-    for i, v in ipairs(scoreTiles) do
+    for i, v in ipairs(peeOrbs) do
       if v.active == true then
         love.graphics.draw(v.particles, v.x+(v.width/2), v.y+3)
       end
     end
+
     -- draw the pee orbs
-    for i, v in ipairs(scoreTiles) do
-      if v.fill == 0 then
-        peeOrb.anEmpty:draw(peeOrb.sprite, v.x-8, v.y)
-      elseif v.fill > 0 and v.fill < 33 then
-        peeOrb.an25:draw(peeOrb.sprite, v.x-8, v.y)
-      elseif v.fill >= 33 and v.fill < 66 then
-        peeOrb.an50:draw(peeOrb.sprite, v.x-8, v.y)
-      elseif v.fill >= 66 and v.fill < 100 then
-        peeOrb.an75:draw(peeOrb.sprite, v.x-8, v.y)
-      elseif v.fill >= 100 then
-        peeOrb.anFull:draw(peeOrb.sprite, v.x-8, v.y)
-      end
+    for i, peeOrb in ipairs(peeOrbs) do
+      peeOrb:draw()
     end
 
-    if portal.active == true then
-      love.graphics.draw(finalePS, portal.x+64, portal.y+30)
-      portal.an1:draw(portal.sprite, portal.x, portal.y)
-    end
-
-    -- draw our boy
     love.graphics.setColor(256, 256, 256)
-    love.graphics.draw(luigi.sprite, luigi.x, luigi.y, 0, 1, 1, luigi.sprite:getWidth()/2, luigi.sprite:getHeight()/2)
-    -- draw the player
-    -- walking animations
-    if player.moving then
-      if player.direction == 0 then
-        player.anMDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 1 then
-        player.anMDownLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 2 then
-        player.anMLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 3 then
-        player.anMUpLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 4 then
-        player.anMUp:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 5 then
-        player.anMUpRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 6 then
-        player.anMRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 7 then
-        player.anMDownRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      else
-        player.anMDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      end
-    else -- idle animations
-      if player.direction == 0 then
-        player.anIDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 1 then
-        player.anIDownLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 2 then
-        player.anILeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 3 then
-        player.anIUpLeft:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 4 then
-        player.anIUp:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 5 then
-        player.anIUpRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 6 then
-        player.anIRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      elseif player.direction == 7 then
-        player.anIDownRight:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      else
-        player.anIDown:draw(player.sprite, player.x, player.y, 0, 1, 1, player.grid.frameWidth/2, player.grid.frameHeight/2 + 8)
-      end
-    end
-
-    --love.graphics.draw(player.sprite, player.x, player.y, 0, 1, 1, player.sprite:getWidth()/2, player.sprite:getHeight()/2)
-    love.graphics.draw(player.arrow, player.x, player.y, math.rad(findRotation(player.x, player.y, luigi.x, luigi.y)), 1, 1, player.arrow:getWidth()/2, player.arrow:getHeight()/2)
-
-
-
-
-
+    luigi.draw()
+    player.draw()
+    portal.draw()
     -- draw overlay layer
     drawMap(map, 4, 10)
 
-    -- shade bounding boxes for testing
-    if debug == true then
-      love.graphics.setColor(10, 10, 10, 150)
-      --player.bbox:draw('fill')
-      --luigi.bbox:draw('fill')
-      --portal.bbox:draw('fill')
-      for i = 1, table.getn(collisionTiles) do
-        --collisionTiles[i]:draw('fill')
-      end
-      for i = 1, table.getn(scoreTiles) do
-        --love.graphics.setColor(10, 10, 10, 150)
-        --scoreTiles[i]:draw('fill')
-        --love.graphics.setFont(compyFont)
-        --love.graphics.setColor(0, 256, 0)
-        --love.graphics.print(scoreTiles[i].fill, scoreTiles[i].x, scoreTiles[i].y-5)
-        --love.graphics.print(scoreTiles[i].number, scoreTiles[i].x, scoreTiles[i].y+10)
-        --love.graphics.setFont(newFont)
-      end
-    end
-
-    if portal.active == true then
-      if fadeIn < 150 then
-        fadeIn = fadeIn + 1
-      end
-      love.graphics.setColor(100, 0, 0, fadeIn)
-      love.graphics.rectangle('fill', 0, 0, map.file.width * map.file.tilewidth, map.file.height * map.file.tileheight)
-    end
 
     love.graphics.pop()
+    pissTank.drawBar()
+    player.drawScore()
 
-    love.graphics.setColor(256, 256, 256, 200)
-    love.graphics.draw(pissBar, 10, 10, 0, ((love.graphics.getWidth() - 20) * (pissTank/pissTankMax)), 35)
-    love.graphics.setColor(256, 256, 256)
-    love.graphics.print('Pee remaining...', 19, 3)
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.print('Pee remaining...', 18, 2)
-
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.print('Score: '..score, 11, love.graphics.getHeight() - 49)
-    love.graphics.setColor(256, 256, 256)
-    love.graphics.print('Score: '..score, 10, love.graphics.getHeight() - 50)
-
-    if staminaTimer < staminaTimerMax then
-      love.graphics.setColor(256, 0, 0, 200)
-      love.graphics.draw(pissBar, 10, 40, 0, ((love.graphics.getWidth() - 20) * (pissStamina/pissStaminaMax)), 5)
-    else
-      love.graphics.setColor(0, 0, 256, 200)
-      love.graphics.draw(pissBar, 10, 40, 0, ((love.graphics.getWidth() - 20) * (pissStamina/pissStaminaMax)), 5)
-    end
     love.graphics.setColor(0, 256, 0)
     if paused == true then -- paused
       love.graphics.setColor(0, 0, 0, 200)
@@ -1066,8 +588,8 @@ function love.draw()
       love.graphics.setColor(256, 256, 256)
       gameovertext = love.graphics.newText(newFont, 'Game Over!')
       love.graphics.rectangle('fill', 100, 175, love.graphics.getWidth()-200, 1)
-      love.graphics.printf('Game over!\r\nYou got '..score..' litres of peep on target\r\nLuigi drank '
-        ..luigiScore..' litres of peep\r\n\r\nYour final score is: \r\n'..(score-luigiScore),
+      love.graphics.printf('Game over!\r\nYou got '..player.getScore()..' litres of peep on target\r\nLuigi drank '
+        ..luigi.getScore()..' litres of peep\r\n\r\nYour final score is: \r\n'..(player.getScore()-luigi.getScore()),
         0, 200, love.graphics.getWidth(), 'center')
       love.graphics.rectangle('fill', 100, 430, love.graphics.getWidth()-200, 1)
       love.graphics.print('Press ESC to Exit.\r\nPress R to restart...', 10, love.graphics.getHeight() - 80)
@@ -1087,10 +609,8 @@ function love.draw()
     love.graphics.draw(splashScreen, (love.graphics.getWidth()/2)-(splashScreen:getWidth()/2), (love.graphics.getHeight()/2)-(splashScreen:getHeight()/2))
 
   end
-  --love.graphics.setColor(256, 256, 256)
-  --text = endImg:getHeight()
-  --if walkAllowed then text = 'true' else text = 'false' end
-  --love.graphics.print(text,10, 100)
+  love.graphics.setColor(256, 256, 256)
+  love.graphics.print(text,10, 100)
 
 
 end --love.draw()
