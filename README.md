@@ -5,8 +5,8 @@ A game a bout a dog trying to pee.
 By Neil Holmes with help from Gabby Patterson, 2016.
 
 WASD or the arrows moves your dog. You pee automatically (you're desperate for a wee!) and the game ends when you're out of pee.
-You can hold your pee for a short time, the black bar below the pee bar shows how much you can hold it in.
-You gain points by filling up the mystic orbs with your pee, and lose points if Luigi drinks them.
+You can hold your pee for a short time by pressing the left mouse button, the black bar below the pee bar shows how much you can hold it in.
+You gain points by filling up the mystic orbs with your pee, and lose points if Luigi drinks it instead.
 
 Coded in lua using [Love 2D](https://love2d.org/).
 
