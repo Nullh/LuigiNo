@@ -1,10 +1,7 @@
 local anim8 = require 'anim8'
 local HC = require 'HC'
 local shack = require 'shack'
-<<<<<<< HEAD
-=======
 require 'TEsound'
->>>>>>> Dev
 require 'bookEntries'
 debug = true
 fullscreen = false
@@ -37,12 +34,9 @@ fadeIn = nil
 endImg = nil
 startCrawl = nil
 textFade = nil
-<<<<<<< HEAD
-=======
 imgFade = nil
 glugAllowed = nil
 walkAllowed = nil
->>>>>>> Dev
 -- STATES:
 -- 0 - Init
 -- 1 - Intro
@@ -95,8 +89,6 @@ function getTiles(map)
   return tiles
 end -- getTiles()
 
-<<<<<<< HEAD
-=======
 function flipGlugAllowed(list)
   glugAllowed = true
 end
@@ -105,7 +97,6 @@ function flipWalkAllowed(list)
   walkAllowed = true
 end
 
->>>>>>> Dev
 function getPlayerStart(map)
   local coords = {}
   for i=1, table.getn(map.file.layers) do
@@ -117,11 +108,7 @@ function getPlayerStart(map)
   return coords
 end --getPlayerStart()
 
-<<<<<<< HEAD
-function createBlockingTiles(map, collider, blockingLayerString)
-=======
 function getObjectTiles(map, collider, blockingLayerString)
->>>>>>> Dev
   local collisionTileTable = {}
   local blockinglayer = nil
   local row = 1
@@ -139,20 +126,12 @@ function getObjectTiles(map, collider, blockingLayerString)
     if map.file.layers[blockinglayer].objects[i].shape == "rectangle" then
       table.insert(collisionTileTable, collider:rectangle(map.file.layers[blockinglayer].objects[i].x, map.file.layers[blockinglayer].objects[i].y,
           map.file.layers[blockinglayer].objects[i].width, map.file.layers[blockinglayer].objects[i].height))
-<<<<<<< HEAD
-      collisionTileTable[table.getn(collisionTileTable)].name = 'blocking'
-=======
       collisionTileTable[table.getn(collisionTileTable)].name = blockingLayerString
->>>>>>> Dev
     elseif map.file.layers[blockinglayer].objects[i].shape == "ellipse" then
       table.insert(collisionTileTable, collider:circle(map.file.layers[blockinglayer].objects[i].x + (map.file.layers[blockinglayer].objects[i].width/2),
           map.file.layers[blockinglayer].objects[i].y + (map.file.layers[blockinglayer].objects[i].width/2),
           map.file.layers[blockinglayer].objects[i].width/2))
-<<<<<<< HEAD
-      collisionTileTable[table.getn(collisionTileTable)].name = 'blocking'
-=======
       collisionTileTable[table.getn(collisionTileTable)].name = blockingLayerString
->>>>>>> Dev
     end
   end
   return collisionTileTable
@@ -298,9 +277,6 @@ function love.load()
   bigSignFont = love.graphics.newFont('assets/Cinzel-Black.ttf', 40)
   bigDefault = love.graphics.newFont('assets/ComingSoon.ttf', 40)
   endImg = love.graphics.newImage('assets/ending.png')
-<<<<<<< HEAD
-  textFade = 0
-=======
   TEsound.playLooping('assets/hiss.mp3', 'hiss', nil, 0.05, 0.8)
   TEsound.pause('hiss')
   leaves01 = love.sound.newSoundData("assets/leaves01.ogg")
@@ -308,7 +284,6 @@ function love.load()
   walklist = {[1]=leaves01, [2]=leaves02}
   textFade = 0
   imgFade = 0
->>>>>>> Dev
   local particle = love.graphics.newImage('assets/particle.png')
   psystem = love.graphics.newParticleSystem(particle, 32)
   psystem:setParticleLifetime(2, 4)
@@ -332,12 +307,8 @@ function love.load()
   collider = HC.new(150)
   -- do my awesome map loading!
   map = loadMap("maps/map3.lua", "assets/atlas64.png")
-<<<<<<< HEAD
-  collisionTiles = createBlockingTiles(map, collider, 'blocking')
-=======
   collisionTiles = getObjectTiles(map, collider, 'blocking')
   plyerExcTiles = getObjectTiles(map, collider, 'playerblock')
->>>>>>> Dev
   scoreTiles = getScoreTiles(map, collider, 'score', psystem)
 
   signpost = love.graphics.newImage('assets/Signpost.png')
@@ -414,11 +385,7 @@ function love.load()
   chaseObject.radius = 10
 
   -- set init parms
-<<<<<<< HEAD
-  pissTankMax = 1300
-=======
   pissTankMax = 1400
->>>>>>> Dev
   pissStaminaMax = 100
   staminaTimerMax = 10
 
@@ -471,13 +438,10 @@ function love.update(dt)
         tile.full = false
         tile.active = false
       end
-<<<<<<< HEAD
-=======
       glugAllowed = true
       walkAllowed = true
       TEsound.stop('ending')
       TEsound.playLooping('assets/MSTR_-_MSTR_-_Choro_bavario_Loop.ogg', 'bgm', nil, 0.6)
->>>>>>> Dev
       state = 1
       player.x = getPlayerStart(map).x
       player.y = getPlayerStart(map).y
@@ -598,118 +562,6 @@ function love.update(dt)
             end
           end
 
-<<<<<<< HEAD
-
-      -- update animations
-      player.anIDown:update(dt)
-      player.anMDown:update(dt)
-      player.anIDownLeft:update(dt)
-      player.anMDownLeft:update(dt)
-      player.anILeft:update(dt)
-      player.anMLeft:update(dt)
-      player.anIUpLeft:update(dt)
-      player.anMUpLeft:update(dt)
-      player.anIUp:update(dt)
-      player.anMUp:update(dt)
-      player.anIUpRight:update(dt)
-      player.anMUpRight:update(dt)
-      player.anIRight:update(dt)
-      player.anMRight:update(dt)
-      player.anIDownRight:update(dt)
-      player.anMDownRight:update(dt)
-
-      -- update the pee orbs
-      peeOrb.an25:update(dt)
-      peeOrb.an50:update(dt)
-      peeOrb.an75:update(dt)
-
-      portal.an1:update(dt)
-
-      if scoreTiles[1].active == true
-        and scoreTiles[2].active == true
-        and scoreTiles[3].active == true
-        and scoreTiles[4].active == true
-        and scoreTiles[5].active == true then
-          portal.active = true
-      end
-
-      if portal.active == true then
-        portal.bbox =  collider:rectangle(portal.x, portal.y, 128, 128)
-        portal.bbox.name = 'portal'
-      end
-
-      -- update
-      if love.graphics.getWidth() < map.file.width * map.file.tilewidth then
-        screen.transformationX = math.floor(-player.x + (love.graphics.getWidth()/2))
-        if screen.transformationX > 0 then
-          screen.transformationX = 0
-        elseif screen.transformationX < -((map.file.width * map.file.tilewidth) - love.graphics.getWidth()) then
-          screen.transformationX = -((map.file.width * map.file.tilewidth) - love.graphics.getWidth())
-        end
-      else
-        screen.transformationX = (love.graphics.getWidth() - (map.file.width * map.file.tilewidth))/2
-      end
-
-      if love.graphics.getHeight() < map.file.height * map.file.tileheight then
-        screen.transformationY = math.floor(-player.y + (love.graphics.getHeight()/2))
-        if screen.transformationY > 0 then
-          screen.transformationY = 0
-        elseif screen.transformationY < -((map.file.height * map.file.tileheight) - love.graphics.getHeight()) then
-          screen.transformationY = -((map.file.height * map.file.tileheight) - love.graphics.getHeight())
-        end
-      else
-        screen.transformationY = (love.graphics.getHeight() - (map.file.height * map.file.tileheight))/2
-      end
-
-      -- do we want to stop peeing?
-      if pissStamina > 0 and love.mouse.isDown(1) and staminaTimer >= staminaTimerMax then
-        pissStamina = pissStamina - (20 * dt)
-        if pissStamina <= 0 then staminaTimer = 0 end
-        -- REMOVE THIS BEFORE RELEASE!
-      elseif love.mouse.isDown(2) and debug == true then
-      else
-          local startX = player.x
-          local startY = player.y
-          local mouseX = love.mouse.getX() - screen.transformationX
-          local mouseY = love.mouse.getY() - screen.transformationY
-          local angle = math.atan2((mouseY - startY), (mouseX - startX))
-          local bulletDx = (player.peespeed - player.deceleration) * math.cos(angle)
-          local bulletDy = (player.peespeed - player.deceleration) * math.sin(angle)
-          table.insert(pissStream, {x = startX,
-                                    y = startY,
-                                    dx = bulletDx,
-                                    dy = bulletDy,
-                                    radius = 0,
-                                    bbox = collider:circle(startX, startY, 5)})
-          pissStream[table.getn(pissStream)].bbox.name = 'piss'
-          pissTank = pissTank - 1
-          pissStamina = pissStamina + (20 * dt)
-          if pissStamina > pissStaminaMax then pissStamina = pissStaminaMax end
-          if staminaTimer < staminaTimerMax then staminaTimer = staminaTimer + (10 * dt) end
-      end
-
-      --update player bounding bbox
-
-      for shape, delta in pairs(collider:collisions(luigi.bbox)) do
-        if shape.name ~= 'piss' then
-          luigi.y = luigi.y + delta.y
-          luigi.x = luigi.x + delta.x
-        end
-      end
-      luigi.bbox:moveTo(luigi.x, luigi.y)
-
-      for shape, delta in pairs(collider:collisions(player.bbox)) do
-        if shape.name ~= 'piss' and shape.name ~= 'luigi' then
-          player.y = player.y + delta.y
-          player.x = player.x + delta.x
-          if shape.name == 'portal' then
-            portal.entered = true
-            collider:remove(portal.bbox)
-            state = 3
-          end
-        end
-      end
-=======
       if player.moving == true then
         if walkAllowed == true then
           local randWalk = love.math.random(1, 2)
@@ -834,7 +686,6 @@ function love.update(dt)
           end
         end
       end
->>>>>>> Dev
       player.bbox:moveTo(player.x, player.y)
 
       for i,v in ipairs(pissStream) do
@@ -845,14 +696,11 @@ function love.update(dt)
             if shape.fill + 1 < 101 then
               shape.fill = shape.fill + 1
               score = score + 1
-<<<<<<< HEAD
-=======
               if glugAllowed == true then
                 local pitch = 0.5 + (shape.fill/2)/100
                 TEsound.play('assets/glug.mp3', 'glug', 0.8, pitch, flipGlugAllowed)
                 glugAllowed = false
               end
->>>>>>> Dev
             elseif shape.full == false then
               -- pause and show the signpost
               paused = true
@@ -903,11 +751,7 @@ function love.update(dt)
       moveTowards(luigi, dt, chaseObject)
 
       -- end the game if we're out of piss
-<<<<<<< HEAD
-      if pissTank <= 0 then
-=======
       if pissTank <= 0 and table.getn(pissStream) == 0 then
->>>>>>> Dev
         state = 3
       end
     else
@@ -1095,11 +939,7 @@ function love.draw()
 
 
     -- draw overlay layer
-<<<<<<< HEAD
-    drawMap(map, 4, 4)
-=======
     drawMap(map, 4, 10)
->>>>>>> Dev
 
     -- shade bounding boxes for testing
     if debug == true then
@@ -1139,13 +979,8 @@ function love.draw()
     love.graphics.print('Pee remaining...', 18, 2)
 
     love.graphics.setColor(0, 0, 0)
-<<<<<<< HEAD
-    love.graphics.print('Pee left...', 18, 5)
-
-=======
     love.graphics.print('Score: '..score, 11, love.graphics.getHeight() - 49)
     love.graphics.setColor(256, 256, 256)
->>>>>>> Dev
     love.graphics.print('Score: '..score, 10, love.graphics.getHeight() - 50)
 
     if staminaTimer < staminaTimerMax then
@@ -1183,29 +1018,6 @@ function love.draw()
 
   elseif state == 3 then
     if portal.entered == true then
-<<<<<<< HEAD
-      love.graphics.setColor(256, 256, 256)
-      love.graphics.draw(endImg, love.graphics.getWidth()/2, love.graphics.getHeight()/2, 0,
-        (love.graphics.getHeight()/endImg:getHeight()), (love.graphics.getHeight()/endImg:getHeight()),
-        --1, 1,
-        endImg:getWidth() / 2, endImg:getHeight() / 2)
-
-      love.graphics.setFont(bigSignFont)
-      love.graphics.setColor(0, 0, 0)
-      love.graphics.printf(endText, 2, startCrawl+2, love.graphics.getWidth(), 'center')
-      love.graphics.setColor(256, 256, 256)
-      love.graphics.printf(endText, 0, startCrawl, love.graphics.getWidth(), 'center')
-      startCrawl = startCrawl - 1
-      if startCrawl < -950 then
-        startCrawl = -950
-        love.graphics.setFont(signFont)
-        love.graphics.setColor(0, 0, 0, textFade)
-        love.graphics.print("Press ESC to quit.\r\nPress R to restart...", 10, love.graphics.getHeight()-60)
-        love.graphics.setColor(256, 256, 256, textFade)
-        love.graphics.print("Press ESC to quit.\r\nPress R to restart...", 12, love.graphics.getHeight()-58)
-        textFade = textFade + 1
-        if textFade > 256 then textFade = 256 end
-=======
       if imgFade < 256 then
         love.graphics.setColor(256, 256, 256, imgFade)
         love.graphics.draw(endImg, love.graphics.getWidth()/2, love.graphics.getHeight()/2, 0,
@@ -1236,7 +1048,6 @@ function love.draw()
           textFade = textFade + 1
           if textFade > 256 then textFade = 256 end
         end
->>>>>>> Dev
       end
 
 
@@ -1276,10 +1087,7 @@ function love.draw()
   end
   --love.graphics.setColor(256, 256, 256)
   --text = endImg:getHeight()
-<<<<<<< HEAD
-=======
   --if walkAllowed then text = 'true' else text = 'false' end
->>>>>>> Dev
   --love.graphics.print(text,10, 100)
 
 
